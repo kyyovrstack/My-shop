@@ -3,84 +3,129 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Админ-панель</title>
+  <title>Панель управления</title>
   
-  <!-- Консоль отладки Eruda -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init();</script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0d1117;
-      color: #c9d1d9;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 20px;
     }
-    .container { max-width: 500px; margin: 40px auto; background: #161b22; padding: 24px; border-radius: 12px; border: 1px solid #30363d; }
-    h2 { color: #58a6ff; margin-bottom: 20px; text-align: center; }
-    .form-group { margin-bottom: 16px; }
-    label { display: block; margin-bottom: 8px; font-size: 14px; color: #8b949e; }
-    input {
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
       width: 100%;
-      padding: 10px;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      color: #fff;
-      font-size: 16px;
+      max-width: 440px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
     }
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      text-align: center;
+      background: linear-gradient(135deg, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-muted); }
+    input[type="text"], input[type="password"], input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--accent); }
     button {
       width: 100%;
       padding: 12px;
-      background: #238636;
+      background: var(--accent);
       color: #fff;
       border: none;
-      border-radius: 6px;
-      font-size: 16px;
+      border-radius: 8px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 8px;
     }
-    button:disabled { background: #2ea04380; cursor: not-allowed; }
+    button:hover { background: var(--accent-hover); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
     .hidden { display: none !important; }
-    .error { color: #f85149; font-size: 14px; margin-top: 8px; text-align: center; }
-    .success { color: #3fb950; font-size: 14px; margin-top: 8px; text-align: center; }
+    .msg { margin-top: 14px; font-size: 14px; text-align: center; word-break: break-word; }
+    .msg.error { color: #f87171; }
+    .msg.success { color: #4ade80; }
+    .back-btn {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <!-- Блок авторизации -->
+  <div class="card">
+    <!-- Авторизация -->
     <div id="auth-block">
-      <h2>Вход в админку</h2>
+      <h2>Вход в панель</h2>
       <div class="form-group">
-        <label for="password">Введите пароль:</label>
-        <input type="password" id="password" placeholder="Пароль">
+        <label for="password">Пароль доступа</label>
+        <input type="password" id="password" placeholder="••••••••">
       </div>
       <button id="login-btn">Войти</button>
-      <div id="auth-error" class="error"></div>
+      <div id="auth-error" class="msg error"></div>
+      <a href="index.html" class="back-btn">← Вернуться на витрину</a>
     </div>
 
-    <!-- Блок добавления товара -->
+    <!-- Форма добавления товара -->
     <div id="admin-panel" class="hidden">
-      <h2>Добавить товар</h2>
+      <h2>Новый товар</h2>
       <form id="add-product-form">
         <div class="form-group">
           <label for="title">Название товара</label>
-          <input type="text" id="title" required placeholder="Например: Кроссовки">
+          <input type="text" id="title" required placeholder="Например: Кроссовки Nike">
         </div>
         <div class="form-group">
-          <label for="price">Цена</label>
-          <input type="text" id="price" required placeholder="Например: 4500 ₽">
+          <label for="price">Стоимость</label>
+          <input type="text" id="price" required placeholder="Например: 5 900 ₽">
         </div>
         <div class="form-group">
-          <label for="image">Изображение</label>
+          <label for="image">Фотография</label>
           <input type="file" id="image" accept="image/*" required>
         </div>
-        <button type="submit" id="submit-btn">Опубликовать товар</button>
+        <button type="submit" id="submit-btn">Опубликовать</button>
       </form>
-      <div id="status-msg"></div>
+      <div id="status-msg" class="msg"></div>
+      <a href="index.html" class="back-btn">← Перейти к товарам</a>
     </div>
   </div>
 
@@ -89,79 +134,67 @@
     const SUPABASE_URL = "https://gokwvpvsqaqzfhfbxst.supabase.co";
     const SUPABASE_ANON_KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdva3d2cHZzcWFxemZqaGZieHN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTAwODksImV4cCI6MjEwNTU4NjA4OX0.OedT8mYq_yyf9vs_qqYOLsPW9LaHqnKY3Zi42ZAWQz8";
 
-    // Инициализация с безопасной проверкой переменной
-    var dbClient = window.dbClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    var adminClient = window.adminClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Логика авторизации
+    // Вход
     document.getElementById('login-btn').addEventListener('click', function() {
-      const passwordInput = document.getElementById('password');
+      const password = document.getElementById('password').value.trim();
       const authError = document.getElementById('auth-error');
-      
-      const enteredPassword = passwordInput.value ? passwordInput.value.trim() : '';
 
-      if (enteredPassword === 'admin') {
+      if (password === 'admin') {
         document.getElementById('auth-block').classList.add('hidden');
         document.getElementById('admin-panel').classList.remove('hidden');
       } else {
-        authError.innerText = 'Неверный пароль!';
+        authError.innerText = 'Неверный пароль';
       }
     });
 
-    // Логика добавления товара
+    // Отправка формы
     document.getElementById('add-product-form').addEventListener('submit', async function(e) {
       e.preventDefault();
-      
+
       const submitBtn = document.getElementById('submit-btn');
       const statusMsg = document.getElementById('status-msg');
       const title = document.getElementById('title').value;
       const price = document.getElementById('price').value;
-      const fileInput = document.getElementById('image');
-      const file = fileInput.files[0];
+      const file = document.getElementById('image').files[0];
 
       if (!file) {
-        statusMsg.className = 'error';
-        statusMsg.innerText = 'Выберите изображение!';
+        statusMsg.className = 'msg error';
+        statusMsg.innerText = 'Выберите фото товара!';
         return;
       }
 
       submitBtn.disabled = true;
-      statusMsg.className = 'success';
-      statusMsg.innerText = 'Загрузка изображения...';
+      statusMsg.className = 'msg success';
+      statusMsg.innerText = 'Загрузка медиафайла...';
 
       try {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
 
-        const { data: uploadData, error: uploadError } = await dbClient
-          .storage
-          .from('products')
-          .upload(fileName, file);
-
+        // 1. Загрузка в Storage
+        const { error: uploadError } = await adminClient.storage.from('products').upload(fileName, file);
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = dbClient
-          .storage
-          .from('products')
-          .getPublicUrl(fileName);
-
+        // 2. Получение публичного URL
+        const { data: urlData } = adminClient.storage.from('products').getPublicUrl(fileName);
         const imageUrl = urlData.publicUrl;
 
-        statusMsg.innerText = 'Сохранение товара...';
+        statusMsg.innerText = 'Запись в базу данных...';
 
-        const { error: dbError } = await dbClient
-          .from('products')
-          .insert([{ title: title, price: price, image_url: imageUrl }]);
-
+        // 3. Запись в БД
+        const { error: dbError } = await adminClient.from('products').insert([{ title, price, image_url: imageUrl }]);
         if (dbError) throw dbError;
 
-        statusMsg.className = 'success';
-        statusMsg.innerText = 'Товар успешно добавлен!';
+        statusMsg.className = 'msg success';
+        statusMsg.innerText = 'Товар успешно опубликован!';
         document.getElementById('add-product-form').reset();
 
       } catch (err) {
         console.error(err);
-        statusMsg.className = 'error';
-        statusMsg.innerText = 'Ошибка: ' + (err.message || 'Не удалось сохранить');
+        statusMsg.className = 'msg error';
+        statusMsg.innerText = 'Ошибка: ' + (err.message || 'Не удалось добавить');
       } finally {
         submitBtn.disabled = false;
       }
