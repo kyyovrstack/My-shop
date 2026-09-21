@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Админ-панель</title>
   
-  <!-- Консоль отладки для смартфона (Eruda) -->
+  <!-- Консоль отладки Eruda -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init();</script>
 
@@ -89,8 +89,8 @@
     const SUPABASE_URL = "https://gokwvpvsqaqzfhfbxst.supabase.co";
     const SUPABASE_ANON_KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdva3d2cHZzcWFxemZqaGZieHN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTAwODksImV4cCI6MjEwNTU4NjA4OX0.OedT8mYq_yyf9vs_qqYOLsPW9LaHqnKY3Zi42ZAWQz8";
 
-    // @ts-ignore
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Инициализация с безопасной проверкой переменной
+    var dbClient = window.dbClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Логика авторизации
     document.getElementById('login-btn').addEventListener('click', function() {
@@ -132,14 +132,14 @@
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
 
-        const { data: uploadData, error: uploadError } = await supabase
+        const { data: uploadData, error: uploadError } = await dbClient
           .storage
           .from('products')
           .upload(fileName, file);
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase
+        const { data: urlData } = dbClient
           .storage
           .from('products')
           .getPublicUrl(fileName);
@@ -148,7 +148,7 @@
 
         statusMsg.innerText = 'Сохранение товара...';
 
-        const { error: dbError } = await supabase
+        const { error: dbError } = await dbClient
           .from('products')
           .insert([{ title: title, price: price, image_url: imageUrl }]);
 
