@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Каталог товаров</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0d1117;
+      color: #c9d1d9;
+      padding: 20px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #30363d;
+    }
+    h1 { color: #58a6ff; font-size: 24px; }
+    .catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      background-color: #0d1117;
+    }
+    .card-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      justify-content: space-between;
+    }
+    .product-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .product-price {
+      font-size: 15px;
+      color: #3fb950;
+      font-weight: 700;
+    }
+    #loading-state {
+      text-align: center;
+      padding: 40px;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Каталог товаров</h1>
+    </header>
+
+    <div id="loading-state">Загрузка каталога...</div>
+    <div id="catalog" class="catalog-grid"></div>
+  </div>
+
+  <script>
+    // @ts-nocheck
+    const SUPABASE_URL = "https://gokwvpvsqaqzfhfbxst.supabase.co";
+    const SUPABASE_ANON_KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdva3d2cHZzcWFxemZqaGZieHN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTAwODksImV4cCI6MjEwNTU4NjA4OX0.OedT8mYq_yyf9vs_qqYOLsPW9LaHqnKY3Zi42ZAWQz8";
+
+    // @ts-ignore
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function fetchProducts() {
+      const catalogContainer = document.getElementById('catalog');
+      const loadingState = document.getElementById('loading-state');
+
+      try {
+        const { data: products, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('id', { ascending: false });
+
+        if (error) throw error;
+
+        if (loadingState) loadingState.style.display = 'none';
+
+        if (!products || products.length === 0) {
+          if (catalogContainer) {
+            catalogContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center;">Товаров пока нет.</p>';
+          }
+          return;
+        }
+
+        if (catalogContainer) {
+          catalogContainer.innerHTML = '';
+          products.forEach((/** @type {any} */ product) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+              <img src="${product.image_url}" alt="${product.title}">
+              <div class="card-body">
+                <div class="product-title">${product.title}</div>
+                <div class="product-price">${product.price}</div>
+              </div>
+            `;
+            catalogContainer.appendChild(card);
+          });
+        }
+
+      } catch (err) {
+        console.error(err);
+        if (loadingState) {
+          loadingState.innerText = "Ошибка при загрузке каталога.";
+          loadingState.style.color = "#f85149";
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchProducts);
+  </script>
+</body>
+</html>

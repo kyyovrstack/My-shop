@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ-панель магазина</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0d1117;
+      color: #c9d1d9;
+      padding: 20px;
+    }
+    .container { max-width: 500px; margin: 0 auto; }
+    h1, h2 { color: #58a6ff; margin-bottom: 20px; text-align: center; }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
+    input[type="text"], input[type="password"], input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+      background: #0d1117;
+      color: #fff;
+      font-size: 15px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #238636;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:active { background: #2ea043; }
+    .hidden { display: none; }
+    .product-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #30363d;
+    }
+    .product-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
+    .product-details { flex-grow: 1; margin-left: 12px; }
+    .btn-delete { width: auto; padding: 6px 12px; background: #da3633; font-size: 12px; }
+    #status { margin-top: 10px; font-size: 14px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div id="auth-box" class="card">
+      <h1>Вход в Админку</h1>
+      <label>Пароль доступа</label>
+      <input type="password" id="admin-password" placeholder="Введите пароль">
+      <button onclick="checkPassword()">Войти</button>
+      <div id="auth-error" style="color: #f85149; margin-top: 10px; text-align: center;"></div>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+      <h1>Управление Товарами</h1>
+      
+      <div class="card">
+        <h2>Добавить новый товар</h2>
+        <label>Название товара</label>
+        <input type="text" id="title" placeholder="например: Худи Oversize">
+        
+        <label>Цена</label>
+        <input type="text" id="price" placeholder="например: 3 500 ₽">
+        
+        <label>Фотография товара</label>
+        <input type="file" id="image-file" accept="image/*">
+        
+        <button id="submit-btn" onclick="uploadAndSaveProduct()">Опубликовать товар</button>
+        <div id="status"></div>
+      </div>
+
+      <div class="card">
+        <h2>Текущий каталог</h2>
+        <div id="admin-catalog-list">Загрузка товаров...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // @ts-nocheck
+    const SUPABASE_URL = "https://gokwvpvsqaqzfhfbxst.supabase.co";
+    const SUPABASE_ANON_KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdva3d2cHZzcWFxemZqaGZieHN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTAwODksImV4cCI6MjEwNTU4NjA4OX0.OedT8mYq_yyf9vs_qqYOLsPW9LaHqnKY3Zi42ZAWQz8";
+    const ADMIN_SECRET_PASSWORD = "admin"; 
+
+    // @ts-ignore
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function checkPassword() {
+      const passwordInput = /** @type {HTMLInputElement} */ (document.getElementById('admin-password'));
+      const authError = document.getElementById('auth-error');
+      const authBox = document.getElementById('auth-box');
+      const adminPanel = document.getElementById('admin-panel');
+
+      if (passwordInput && passwordInput.value === ADMIN_SECRET_PASSWORD) {
+        if (authBox) authBox.classList.add('hidden');
+        if (adminPanel) adminPanel.classList.remove('hidden');
+        loadAdminProducts();
+      } else if (authError) {
+        authError.innerText = "Неверный пароль!";
+      }
+    }
+
+    async function uploadAndSaveProduct() {
+      const titleInput = /** @type {HTMLInputElement} */ (document.getElementById('title'));
+      const priceInput = /** @type {HTMLInputElement} */ (document.getElementById('price'));
+      const fileInput = /** @type {HTMLInputElement} */ (document.getElementById('image-file'));
+      const status = document.getElementById('status');
+
+      const title = titleInput ? titleInput.value.trim() : '';
+      const price = priceInput ? priceInput.value.trim() : '';
+      const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+
+      if (!title || !price || !file) {
+        alert("Заполните все поля и выберите фото!");
+        return;
+      }
+
+      if (status) {
+        status.innerText = "Загрузка изображения...";
+        status.style.color = "#58a6ff";
+      }
+
+      try {
+        const fileName = Date.now() + '_' + file.name;
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+
+        const imageUrl = publicUrlData.publicUrl;
+
+        if (status) status.innerText = "Сохранение товара...";
+        const { error: insertError } = await supabase
+          .from('products')
+          .insert([{ title: title, price: price, image_url: imageUrl }]);
+
+        if (insertError) throw insertError;
+
+        if (status) {
+          status.innerText = "Товар успешно добавлен!";
+          status.style.color = "#3fb950";
+        }
+
+        if (titleInput) titleInput.value = '';
+        if (priceInput) priceInput.value = '';
+        if (fileInput) fileInput.value = '';
+
+        loadAdminProducts();
+
+      } catch (err) {
+        console.error(err);
+        if (status) {
+          status.innerText = "Ошибка: " + (/** @type {Error} */ (err)).message;
+          status.style.color = "#f85149";
+        }
+      }
+    }
+
+    async function loadAdminProducts() {
+      const listContainer = document.getElementById('admin-catalog-list');
+      if (!listContainer) return;
+
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('id', { ascending: false });
+
+      if (error) {
+        listContainer.innerText = "Ошибка загрузки элементов.";
+        return;
+      }
+
+      if (!products || products.length === 0) {
+        listContainer.innerText = "Товаров пока нет.";
+        return;
+      }
+
+      listContainer.innerHTML = '';
+      products.forEach((/** @type {any} */ p) => {
+        const item = document.createElement('div');
+        item.className = 'product-item';
+        item.innerHTML = `
+          <img src="${p.image_url}" alt="photo">
+          <div class="product-details">
+            <strong style="color:#fff;">${p.title}</strong><br>
+            <span style="font-size:13px; color:#a3b3c2;">${p.price}</span>
+          </div>
+          <button class="btn-delete" onclick="deleteProduct(${p.id})">Удалить</button>
+        `;
+        listContainer.appendChild(item);
+      });
+    }
+
+    async function deleteProduct(/** @type {any} */ id) {
+      if (!confirm("Удалить этот товар?")) return;
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (!error) loadAdminProducts();
+    }
+
+    window.checkPassword = checkPassword;
+    window.uploadAndSaveProduct = uploadAndSaveProduct;
+    window.deleteProduct = deleteProduct;
+  </script>
+</body>
+</html>
