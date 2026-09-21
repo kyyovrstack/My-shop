@@ -3,136 +3,172 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Каталог товаров</title>
+  <title>Современный Магазин</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0d1117;
-      color: #c9d1d9;
-      padding: 20px;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
-    .container { max-width: 800px; margin: 0 auto; }
     header {
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 16px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #30363d;
     }
-    h1 { color: #58a6ff; font-size: 24px; }
-    .catalog-grid {
+    .logo {
+      font-size: 20px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .admin-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+    .admin-link:hover {
+      background: var(--card-bg);
+      color: var(--text);
+    }
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px;
+      width: 100%;
+      flex-grow: 1;
+    }
+    .catalog {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 24px;
     }
     .card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .card img {
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+    }
+    .card-img-wrapper {
       width: 100%;
-      height: 180px;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background: #0f172a;
+    }
+    .card-img {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      background-color: #0d1117;
     }
     .card-body {
-      padding: 12px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
       flex-grow: 1;
-      justify-content: space-between;
     }
-    .product-title {
+    .card-title {
       font-size: 16px;
       font-weight: 600;
-      color: #fff;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      color: var(--text);
     }
-    .product-price {
-      font-size: 15px;
-      color: #3fb950;
+    .card-price {
+      font-size: 18px;
       font-weight: 700;
+      color: #38bdf8;
+      margin-top: auto;
     }
-    #loading-state {
+    .loader, .empty-msg {
       text-align: center;
-      padding: 40px;
-      color: #8b949e;
+      grid-column: 1 / -1;
+      padding: 48px;
+      color: var(--text-muted);
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <header>
-      <h1>Каталог товаров</h1>
-    </header>
+  <header>
+    <div class="logo">STORE.</div>
+    <a href="admin.html" class="admin-link">Админ-панель</a>
+  </header>
 
-    <div id="loading-state">Загрузка каталога...</div>
-    <div id="catalog" class="catalog-grid"></div>
-  </div>
+  <main>
+    <div id="catalog" class="catalog">
+      <div class="loader">Загрузка товаров...</div>
+    </div>
+  </main>
 
   <script>
     // @ts-nocheck
     const SUPABASE_URL = "https://gokwvpvsqaqzfhfbxst.supabase.co";
     const SUPABASE_ANON_KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdva3d2cHZzcWFxemZqaGZieHN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTAwODksImV4cCI6MjEwNTU4NjA4OX0.OedT8mYq_yyf9vs_qqYOLsPW9LaHqnKY3Zi42ZAWQz8";
 
-    // @ts-ignore
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    var storeClient = window.storeClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    async function fetchProducts() {
-      const catalogContainer = document.getElementById('catalog');
-      const loadingState = document.getElementById('loading-state');
-
+    async function loadProducts() {
+      const catalogEl = document.getElementById('catalog');
+      
       try {
-        const { data: products, error } = await supabase
-          .from('products')
-          .select('*')
-          .order('id', { ascending: false });
-
+        const { data, error } = await storeClient.from('products').select('*').order('id', { ascending: false });
         if (error) throw error;
 
-        if (loadingState) loadingState.style.display = 'none';
-
-        if (!products || products.length === 0) {
-          if (catalogContainer) {
-            catalogContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center;">Товаров пока нет.</p>';
-          }
+        if (!data || data.length === 0) {
+          catalogEl.innerHTML = '<div class="empty-msg">Каталог пока пуст. Добавьте товары через админ-панель.</div>';
           return;
         }
 
-        if (catalogContainer) {
-          catalogContainer.innerHTML = '';
-          products.forEach((/** @type {any} */ product) => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-              <img src="${product.image_url}" alt="${product.title}">
-              <div class="card-body">
-                <div class="product-title">${product.title}</div>
-                <div class="product-price">${product.price}</div>
-              </div>
-            `;
-            catalogContainer.appendChild(card);
-          });
-        }
+        catalogEl.innerHTML = data.map(item => `
+          <div class="card">
+            <div class="card-img-wrapper">
+              <img class="card-img" src="${item.image_url}" alt="${item.title}" loading="lazy">
+            </div>
+            <div class="card-body">
+              <div class="card-title">${item.title}</div>
+              <div class="card-price">${item.price}</div>
+            </div>
+          </div>
+        `).join('');
 
       } catch (err) {
         console.error(err);
-        if (loadingState) {
-          loadingState.innerText = "Ошибка при загрузке каталога.";
-          loadingState.style.color = "#f85149";
-        }
+        catalogEl.innerHTML = `<div class="empty-msg" style="color: #ef4444;">Ошибка загрузки каталога: ${err.message}</div>`;
       }
     }
 
-    document.addEventListener('DOMContentLoaded', fetchProducts);
+    loadProducts();
   </script>
 </body>
 </html>
