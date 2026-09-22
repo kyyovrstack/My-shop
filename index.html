@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NeonStore — Интернет-магазин</title>
+  <title>NeonStore — Интернет-магазин с безопасным входом</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -54,7 +54,7 @@
     .nav-buttons button:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(236,72,153,0.4); }
 
     /* --- MAIN LAYOUT --- */
-    container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; display: block; }
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; display: block; }
     h2 { margin-bottom: 1.5rem; font-size: 1.8rem; border-left: 4px solid var(--pink); padding-left: 10px; }
 
     /* --- СЕТКА ТОВАРОВ --- */
@@ -75,6 +75,23 @@
     }
     .btn-buy:hover { background: var(--accent-hover); }
 
+    /* --- МОДАЛЬНОЕ ОКНО ДЛЯ ПАРОЛЯ --- */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
+      display: none; justify-content: center; align-items: center; z-index: 1000;
+    }
+    .modal-card {
+      background: var(--card-bg); padding: 2rem; border-radius: 12px;
+      border: 1px solid var(--accent); width: 100%; max-width: 350px; text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .modal-card h3 { margin-bottom: 1rem; color: var(--text); }
+    .modal-card input {
+      width: 100%; padding: 0.7rem; border-radius: 6px; border: 1px solid #475569;
+      background: #0f172a; color: white; margin-bottom: 1rem; font-size: 1rem; text-align: center;
+    }
+
     /* --- АДМИН ПАНЕЛЬ --- */
     #admin-panel {
       background: var(--card-bg); padding: 2rem; border-radius: 12px;
@@ -82,13 +99,18 @@
     }
     .form-group { margin-bottom: 1rem; }
     .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); }
-    .form-group input {
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="file"] {
       width: 100%; padding: 0.7rem; border-radius: 6px; border: 1px solid #475569;
       background: #0f172a; color: white;
     }
+    .preview-container { margin-top: 10px; display: none; }
+    .preview-container img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid var(--pink); }
+
     .admin-actions { display: flex; gap: 10px; margin-top: 1rem; }
-    .btn-save { background: #10b981; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    .btn-cancel { background: #64748b; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 6px; cursor: pointer; }
+    .btn-save { background: #10b981; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: bold; flex: 1; }
+    .btn-cancel { background: #64748b; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 6px; cursor: pointer; flex: 1; }
 
     /* Таблица админки */
     .admin-table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
@@ -109,11 +131,23 @@
   <header>
     <div class="logo">⚡ NeonStore</div>
     <div class="nav-buttons">
-      <button onclick="toggleAdmin()">Панель управления</button>
+      <button onclick="openPasswordModal()">Панель управления</button>
     </div>
   </header>
 
-  <container>
+  <!-- Модальное окно авторизации (Скрытый ввод пароля) -->
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal-card">
+      <h3>Вход в админ-панель</h3>
+      <input type="password" id="adminPasswordInput" placeholder="Введите пароль">
+      <div class="admin-actions">
+        <button class="btn-save" onclick="checkPassword()">Войти</button>
+        <button class="btn-cancel" onclick="closePasswordModal()">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
     <!-- Панель администратора -->
     <section id="admin-panel">
       <h2>Управление товарами (Админка)</h2>
@@ -121,15 +155,19 @@
         <input type="hidden" id="product-id">
         <div class="form-group">
           <label>Название товара</label>
-          <input type="text" id="product-title" required placeholder="Например: Беспроводные наушники">
+          <input type="text" id="product-title" required placeholder="Например: Кроссовки">
         </div>
         <div class="form-group">
           <label>Цена ($)</label>
-          <input type="number" id="product-price" required placeholder="99">
+          <input type="number" id="product-price" required placeholder="120">
         </div>
         <div class="form-group">
-          <label>Ссылка на изображение (URL)</label>
-          <input type="url" id="product-img" required placeholder="https://images.unsplash.com/photo-1505740420928-5e560c06d30e">
+          <label>Выберите фото из галереи / файла</label>
+          <input type="file" id="product-file" accept="image/*">
+          <div class="preview-container" id="preview-box">
+            <p style="font-size:0.8rem; color: var(--text-muted); margin-bottom: 5px;">Предпросмотр:</p>
+            <img id="img-preview" src="" alt="Превью">
+          </div>
         </div>
         <div class="admin-actions">
           <button type="submit" class="btn-save">Сохранить товар</button>
@@ -156,42 +194,89 @@
       <h2>Каталог товаров</h2>
       <div id="product-grid" class="product-grid"></div>
     </section>
-  </container>
+  </div>
 
   <script>
-    // Начальные данные (если базы ещё нет)
-    const initialProducts = [
-      { id: 1, title: "Игровые Наушники", price: 120, img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500" },
-      { id: 2, title: "Смарт-часы", price: 250, img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500" },
-      { id: 3, title: "Беспроводная Колонка", price: 85, img: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=500" }
-    ];
+    let currentImageBase64 = '';
 
-    // Инициализация базы в localStorage
     function getProducts() {
       const stored = localStorage.getItem('neon_products');
-      if (!stored) {
-        localStorage.setItem('neon_products', JSON.stringify(initialProducts));
-        return initialProducts;
-      }
-      return JSON.parse(stored);
+      return stored ? JSON.parse(stored) : [];
     }
 
     function saveProducts(products) {
-      localStorage.setItem('neon_products', JSON.stringify(products));
-      renderCatalog();
-      renderAdminTable();
+      try {
+        localStorage.setItem('neon_products', JSON.stringify(products));
+        renderCatalog();
+        renderAdminTable();
+      } catch (e) {
+        alert("Ошибка: файл изображения слишком большой! Выберите фото меньшего размера.");
+      }
     }
 
-    // Отображение каталога для клиентов
+    // Авторизация
+    function openPasswordModal() {
+      const panel = document.getElementById('admin-panel');
+      if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+      } else {
+        document.getElementById('passwordModal').style.display = 'flex';
+        document.getElementById('adminPasswordInput').value = '';
+        document.getElementById('adminPasswordInput').focus();
+      }
+    }
+
+    function closePasswordModal() {
+      document.getElementById('passwordModal').style.display = 'none';
+    }
+
+    function checkPassword() {
+      const input = document.getElementById('adminPasswordInput').value;
+      if (input === "adminsh") {
+        closePasswordModal();
+        const panel = document.getElementById('admin-panel');
+        panel.style.display = 'block';
+        renderAdminTable();
+        panel.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        alert("Неверный пароль!");
+      }
+    }
+
+    // Нажатие на Enter при вводе пароля
+    document.getElementById('adminPasswordInput').addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') checkPassword();
+    });
+
+    // Обработка загрузки файла
+    document.getElementById('product-file').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          currentImageBase64 = event.target.result;
+          document.getElementById('img-preview').src = currentImageBase64;
+          document.getElementById('preview-box').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Отрисовка каталога
     function renderCatalog() {
       const products = getProducts();
       const grid = document.getElementById('product-grid');
       grid.innerHTML = '';
 
+      if (products.length === 0) {
+        grid.innerHTML = '<p style="color: var(--text-muted)">Товаров пока нет. Откройте панель управления и добавьте первый товар!</p>';
+        return;
+      }
+
       products.forEach(p => {
         grid.innerHTML += `
           <div class="product-card">
-            <img src="${p.img}" alt="${p.title}" class="product-img" onerror="this.src='https://via.placeholder.com/300x200?text=Нет+фото'">
+            <img src="${p.img || 'https://via.placeholder.com/300x200?text=Нет+фото'}" alt="${p.title}" class="product-img">
             <div class="product-info">
               <div class="product-title">${p.title}</div>
               <div class="product-price">$${p.price}</div>
@@ -202,7 +287,7 @@
       });
     }
 
-    // Отображение таблицы в админке
+    // Отрисовка таблицы админки
     function renderAdminTable() {
       const products = getProducts();
       const tbody = document.getElementById('admin-table-body');
@@ -223,39 +308,33 @@
       });
     }
 
-    // Открытие/закрытие админки с паролем
-    function toggleAdmin() {
-      const panel = document.getElementById('admin-panel');
-      if (panel.style.display === 'none' || panel.style.display === '') {
-        const password = prompt("Введите пароль для доступа к панели (Пароль: admin123):");
-        if (password === "admin123") {
-          panel.style.display = 'block';
-          renderAdminTable();
-          panel.scrollIntoView({ behavior: 'smooth' });
-        } else if (password !== null) {
-          alert("Неверный пароль!");
-        }
-      } else {
-        panel.style.display = 'none';
-      }
-    }
-
-    // Добавление и редактирование
+    // Добавление и редактирование товара
     document.getElementById('product-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const id = document.getElementById('product-id').value;
       const title = document.getElementById('product-title').value;
       const price = parseFloat(document.getElementById('product-price').value);
-      const img = document.getElementById('product-img').value;
 
       let products = getProducts();
 
       if (id) {
-        // Редактирование существующего
-        products = products.map(p => p.id == id ? { id: Number(id), title, price, img } : p);
+        products = products.map(p => {
+          if (p.id == id) {
+            return {
+              id: Number(id),
+              title: title,
+              price: price,
+              img: currentImageBase64 || p.img
+            };
+          }
+          return p;
+        });
       } else {
-        // Добавление нового
-        const newProduct = { id: Date.now(), title, price, img };
+        if (!currentImageBase64) {
+          alert("Пожалуйста, выберите изображение товара!");
+          return;
+        }
+        const newProduct = { id: Date.now(), title, price, img: currentImageBase64 };
         products.push(newProduct);
       }
 
@@ -270,7 +349,11 @@
         document.getElementById('product-id').value = p.id;
         document.getElementById('product-title').value = p.title;
         document.getElementById('product-price').value = p.price;
-        document.getElementById('product-img').value = p.img;
+        currentImageBase64 = p.img;
+        
+        document.getElementById('img-preview').src = p.img;
+        document.getElementById('preview-box').style.display = 'block';
+        
         window.scrollTo({ top: document.getElementById('admin-panel').offsetTop - 20, behavior: 'smooth' });
       }
     }
@@ -286,9 +369,10 @@
     function resetForm() {
       document.getElementById('product-id').value = '';
       document.getElementById('product-form').reset();
+      document.getElementById('preview-box').style.display = 'none';
+      currentImageBase64 = '';
     }
 
-    // Запуск при старте
     renderCatalog();
   </script>
 </body>
