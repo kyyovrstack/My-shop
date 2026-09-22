@@ -24,7 +24,7 @@
       position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
       background: #000000;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
-      z-index: 9999; animation: fadeOut 0.6s ease 1.8s forwards;
+      z-index: 9999; animation: fadeOut 0.6s ease 1.5s forwards;
     }
     .intro-title {
       font-size: 2.2rem; font-weight: 900; letter-spacing: 4px; text-transform: uppercase;
@@ -32,7 +32,7 @@
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       animation: zoomIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .intro-subtitle { color: var(--text-muted); margin-top: 8px; font-size: 0.9rem; letter-spacing: 2px; opacity: 0; animation: fadeIn 0.6s ease 0.6s forwards; }
+    .intro-subtitle { color: var(--text-muted); margin-top: 8px; font-size: 0.9rem; letter-spacing: 2px; opacity: 0; animation: fadeIn 0.6s ease 0.5s forwards; }
 
     @keyframes zoomIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
     @keyframes fadeIn { to { opacity: 1; } }
@@ -288,8 +288,8 @@
   <div class="container" id="catalogSection">
     <!-- Админка -->
     <section id="admin-panel">
-      <h2>Панель администратора (Общая онлайн-база)</h2>
-      <div class="sync-status" id="syncStatus">☁️ Подключение к облаку...</div>
+      <h2>Панель администратора (Персональная база)</h2>
+      <div class="sync-status" id="syncStatus">🔒 Локальная защищенная база</div>
       <form id="product-form" style="margin-top: 10px;">
         <input type="hidden" id="product-id">
         <div class="form-group">
@@ -324,7 +324,7 @@
         </div>
 
         <div class="admin-actions">
-          <button type="submit" class="btn-save">Сохранить в облако</button>
+          <button type="submit" class="btn-save">Сохранить товар</button>
           <button type="button" class="btn-cancel" onclick="resetForm()">Сброс</button>
         </div>
       </form>
@@ -442,7 +442,7 @@
     let currentActiveProduct = null;
     let currentImageIndex = 0;
     
-    // Стандартные демо-товары на случай, если облако пудое или недоступно
+    // Инициализация персональных товаров только для этого магазина
     const defaultProducts = [
       {
         id: 1,
@@ -466,82 +466,30 @@
       }
     ];
 
-    // Загрузка кэша или дефолтных товаров
-    let productsCache = JSON.parse(localStorage.getItem('black_store_local_backup') || 'null');
+    // Ключ для уникального хранилища именно вашего сайта
+    const STORAGE_KEY = 'black_store_exclusive_catalog_v2';
+    let productsCache = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    
     if (!productsCache || !Array.isArray(productsCache) || productsCache.length === 0) {
       productsCache = defaultProducts;
-      localStorage.setItem('black_store_local_backup', JSON.stringify(productsCache));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(productsCache));
     }
     
     let cart = getCart();
     let favorites = getFavorites();
-
     const TG_ACCOUNT = "GemblF";
-    const BIN_ID = "6ab2cbd7ffd5d1605323fa87";
-    const API_KEY = "$2a$10$w85xN8N4m6F/YvK0e9Vl4.8R6P9Ff7PZ8t9K5W0v2Vb3m4N6x6n5K";
 
-    // Синхронизация с облаком с защитой от пустых ответов
-    function fetchCloudProducts() {
-      fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?t=${Date.now()}`, {
-        headers: { 
-          'X-Master-Key': API_KEY,
-          'X-No-Cache': 'true'
-        },
-        cache: 'no-store'
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.record && Array.isArray(data.record.products) && data.record.products.length > 0) {
-          productsCache = data.record.products;
-          localStorage.setItem('black_store_local_backup', JSON.stringify(productsCache));
-          renderCatalog();
-          renderAdminTable();
-          document.getElementById('syncStatus').innerText = "☁️ Синхронизировано из облака";
-        }
-      })
-      .catch(err => {
-        document.getElementById('syncStatus').innerText = "⚠️ Автономный режим (офлайн)";
-      });
-    }
-
-    // Сохранение в облако
-    function saveCloudProducts(callback) {
-      if (!productsCache || productsCache.length === 0) {
-        alert("Ошибка: список товаров пуст!");
-        return;
-      }
-      
-      document.getElementById('syncStatus').innerText = "⏳ Сохранение...";
-      localStorage.setItem('black_store_local_backup', JSON.stringify(productsCache));
-
-      fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Master-Key': API_KEY
-        },
-        body: JSON.stringify({ products: productsCache })
-      })
-      .then(res => res.json())
-      .then(() => {
-        document.getElementById('syncStatus').innerText = "☁️ Успешно сохранено!";
-        renderCatalog();
-        renderAdminTable();
-        if (callback) callback();
-      })
-      .catch(err => {
-        document.getElementById('syncStatus').innerText = "⚠️ Сохранено локально (ошибка облака)";
-        renderCatalog();
-        renderAdminTable();
-        if (callback) callback();
-      });
+    // Сохранение данных в независимое хранилище
+    function saveAndSync() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(productsCache));
+      renderCatalog();
+      renderAdminTable();
+      document.getElementById('syncStatus').innerText = "✅ Изменения сохранены";
     }
 
     // Инициализация при запуске
     renderCatalog();
     renderAdminTable();
-    fetchCloudProducts();
-    setInterval(fetchCloudProducts, 5000);
 
     function getProducts() { return productsCache; }
 
@@ -936,9 +884,8 @@
         productsCache.push(productObj);
       }
 
-      saveCloudProducts(() => {
-        resetForm();
-      });
+      saveAndSync();
+      resetForm();
     });
 
     function editProduct(id) {
@@ -962,7 +909,7 @@
     function deleteProduct(id) {
       if (confirm("Удалить товар?")) {
         productsCache = productsCache.filter(p => p.id !== id);
-        saveCloudProducts();
+        saveAndSync();
       }
     }
 
