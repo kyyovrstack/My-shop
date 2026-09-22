@@ -441,51 +441,25 @@
     
     let cart = getCart();
     let favorites = getFavorites();
-    let cachedProducts = [];
 
     const TG_ACCOUNT = "GemblF";
-    const BIN_ID = "679f291ead1931442a00c6d7";
 
-    // Ускоренная и надежная загрузка/сохранение
-    async function getProducts() {
-      if (cachedProducts.length > 0) return cachedProducts;
-      
-      // Сначала пытаемся быстро взять из localStorage, чтобы интерфейс не зависал
-      const localData = localStorage.getItem('black_store_products_cache');
-      if (localData) {
-        cachedProducts = JSON.parse(localData);
+    // Надежное постоянное хранение в памяти браузера
+    function getProducts() {
+      const stored = localStorage.getItem('black_store_permanent_products');
+      if (stored) {
+        return JSON.parse(stored);
       }
-
-      try {
-        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
-        const data = await res.json();
-        if (data && data.record && data.record.products) {
-          cachedProducts = data.record.products;
-          localStorage.setItem('black_store_products_cache', JSON.stringify(cachedProducts));
-        }
-      } catch (e) {
-        // Если сеть упала, работаем на локальном кэше
-      }
-      return cachedProducts;
+      return [];
     }
 
-    async function saveProductsToCloud(products) {
-      // Мгновенно сохраняем локально, чтобы интерфейс летал без задержек
-      cachedProducts = products;
-      localStorage.setItem('black_store_products_cache', JSON.stringify(products));
+    function saveProducts(products) {
+      localStorage.setItem('black_store_permanent_products', JSON.stringify(products));
       renderCatalog();
       renderAdminTable();
-
-      // Фоновая синхронизация с облаком без блокировки интерфейса
-      fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ products: products })
-      }).catch(() => {});
     }
 
-    async function initStore() {
-      cachedProducts = await getProducts();
+    function initStore() {
       renderCatalog();
       renderAdminTable();
     }
@@ -603,8 +577,8 @@
       renderCatalog();
     }
 
-    async function renderCatalog() {
-      const products = await getProducts();
+    function renderCatalog() {
+      const products = getProducts();
       const grid = document.getElementById('product-grid');
       grid.innerHTML = '';
 
@@ -663,8 +637,8 @@
       });
     }
 
-    async function openProductModal(id, initialSize = '') {
-      const products = await getProducts();
+    function openProductModal(id, initialSize = '') {
+      const products = getProducts();
       const p = products.find(prod => prod.id === id);
       if (!p) return;
 
@@ -835,8 +809,8 @@
       document.getElementById('cartOrderBtn').href = `https://t.me/${TG_ACCOUNT}?text=${orderText}`;
     }
 
-    async function renderAdminTable() {
-      const products = await getProducts();
+    function renderAdminTable() {
+      const products = getProducts();
       const tbody = document.getElementById('admin-table-body');
       tbody.innerHTML = '';
 
@@ -860,7 +834,7 @@
       });
     }
 
-    document.getElementById('product-form').addEventListener('submit', async function(e) {
+    document.getElementById('product-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const id = document.getElementById('product-id').value;
       const title = document.getElementById('product-title').value;
@@ -869,7 +843,7 @@
       const price = parseFloat(document.getElementById('product-price').value);
       const desc = document.getElementById('product-desc').value;
 
-      let products = await getProducts();
+      let products = getProducts();
 
       if (id) {
         products = products.map(p => {
@@ -894,12 +868,12 @@
         });
       }
 
-      await saveProductsToCloud(products);
+      saveProducts(products);
       resetForm();
     });
 
-    async function editProduct(id) {
-      const products = await getProducts();
+    function editProduct(id) {
+      const products = getProducts();
       const p = products.find(prod => prod.id === id);
       if (p) {
         document.getElementById('product-id').value = p.id;
@@ -916,10 +890,10 @@
       }
     }
 
-    async function deleteProduct(id) {
+    function deleteProduct(id) {
       if (confirm("Удалить товар?")) {
-        const products = await getProducts();
-        await saveProductsToCloud(products.filter(p => p.id !== id));
+        const products = getProducts();
+        saveProducts(products.filter(p => p.id !== id));
       }
     }
 
