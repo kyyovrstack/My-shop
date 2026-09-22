@@ -441,18 +441,18 @@
     let selectedSize = '';
     let currentActiveProduct = null;
     let currentImageIndex = 0;
-    let productsCache = [];
+    
+    // Инициализация кэша из localStorage на случай офлайна или задержки сети
+    let productsCache = JSON.parse(localStorage.getItem('black_store_local_backup') || '[]');
     
     let cart = getCart();
     let favorites = getFavorites();
 
     const TG_ACCOUNT = "GemblF";
-
-    // Настройки облачного хранилища JSONbin (обновленный ID)
     const BIN_ID = "6ab2cbd7ffd5d1605323fa87";
     const API_KEY = "$2a$10$w85xN8N4m6F/YvK0e9Vl4.8R6P9Ff7PZ8t9K5W0v2Vb3m4N6x6n5K";
 
-    // Загрузка товаров из облака без кэширования (чтобы сразу видеть изменения у всех)
+    // Безопасная загрузка из облака с защитой от затирания данных
     function fetchCloudProducts() {
       fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?t=${Date.now()}`, {
         headers: { 
@@ -464,20 +464,32 @@
       .then(res => res.json())
       .then(data => {
         if (data && data.record && Array.isArray(data.record.products)) {
-          productsCache = data.record.products;
-          renderCatalog();
-          renderAdminTable();
+          const cloudProducts = data.record.products;
+          // Обновляем кэш только если в облаке есть данные или если локально пусто
+          if (cloudProducts.length > 0 || productsCache.length === 0) {
+            productsCache = cloudProducts;
+            localStorage.setItem('black_store_local_backup', JSON.stringify(productsCache));
+            renderCatalog();
+            renderAdminTable();
+          }
           document.getElementById('syncStatus').innerText = "☁️ Синхронизировано в реальном времени";
         }
       })
       .catch(err => {
-        document.getElementById('syncStatus').innerText = "⚠️ Ошибка связи с облаком";
+        document.getElementById('syncStatus').innerText = "⚠️ Работает оффлайн-режим";
       });
     }
 
-    // Сохранение всей базы товаров в облако
+    // Сохранение в облако с обязательной проверкой
     function saveCloudProducts(callback) {
+      if (!productsCache || productsCache.length === 0) {
+        alert("Ошибка: попытка сохранить пустой список! Отменено.");
+        return;
+      }
+      
       document.getElementById('syncStatus').innerText = "⏳ Сохранение в облако...";
+      localStorage.setItem('black_store_local_backup', JSON.stringify(productsCache));
+
       fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
         method: 'PUT',
         headers: {
@@ -494,13 +506,15 @@
         if (callback) callback();
       })
       .catch(err => {
-        alert("Ошибка сохранения в облако. Проверьте интернет.");
+        alert("Ошибка сохранения в облако. Проверьте интернет-соединение.");
       });
     }
 
-    // Первичная загрузка и автообновление каждые 3 секунды
+    // Первичный рендер из локальной копии, затем подтяжка из облака
+    renderCatalog();
+    renderAdminTable();
     fetchCloudProducts();
-    setInterval(fetchCloudProducts, 3000);
+    setInterval(fetchCloudProducts, 4000);
 
     function getProducts() {
       return productsCache;
