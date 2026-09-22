@@ -251,12 +251,12 @@
     .admin-actions { display: flex; gap: 8px; margin-top: 1rem; flex-wrap: wrap; }
     .btn-save { background: #10b981; color: white; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; min-width: 110px; }
     .btn-cancel { background: #3f3f46; color: white; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; flex: 1; min-width: 110px; }
-    .btn-backup { background: #3b82f6; color: white; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; }
     
     .admin-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.8rem; }
     .admin-table th, .admin-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
     .btn-edit { background: #f59e0b; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; }
     .btn-delete { background: #ef4444; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; }
+    .sync-status { font-size: 0.75rem; color: #10b981; margin-top: 6px; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -288,8 +288,9 @@
   <div class="container" id="catalogSection">
     <!-- Админка -->
     <section id="admin-panel">
-      <h2>Панель администратора (Супер-надежная база)</h2>
-      <form id="product-form">
+      <h2>Панель администратора (Общая онлайн-база)</h2>
+      <div class="sync-status" id="syncStatus">☁️ Подключение к облаку...</div>
+      <form id="product-form" style="margin-top: 10px;">
         <input type="hidden" id="product-id">
         <div class="form-group">
           <label>Название товара</label>
@@ -323,14 +324,9 @@
         </div>
 
         <div class="admin-actions">
-          <button type="submit" class="btn-save">Сохранить</button>
+          <button type="submit" class="btn-save">Сохранить в облако</button>
           <button type="button" class="btn-cancel" onclick="resetForm()">Сброс</button>
         </div>
-        <button type="button" class="btn-backup" onclick="exportBackup()">📥 Скачать резервную копию базы</button>
-        <label class="file-upload-btn" style="margin-top: 8px; background: #2563eb; border: none; cursor: pointer;">
-          📤 Восстановить базу из файла
-          <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(event)">
-        </label>
       </form>
 
       <h3 style="margin-top: 1.5rem; font-size: 1rem;">Список товаров</h3>
@@ -452,164 +448,65 @@
 
     const TG_ACCOUNT = "GemblF";
 
-    // --- НАДЕЖНОЕ ХРАНИЛИЩЕ INDEXEDDB ---
-    let db;
-    const dbRequest = indexedDB.open("BlackStoreDB", 1);
+    // Настройки облачного хранилища JSONbin
+    const BIN_ID = "67c9451cad19ca34f813c9e6";
+    const API_KEY = "$2a$10$w85xN8N4m6F/YvK0e9Vl4.8R6P9Ff7PZ8t9K5W0v2Vb3m4N6x6n5K";
 
-    dbRequest.onerror = function(event) {
-      console.error("Ошибка открытия IndexedDB", event);
-      loadFallbackProducts();
-    };
-
-    dbRequest.onupgradeneeded = function(event) {
-      db = event.target.result;
-      if (!db.objectStoreNames.contains("products")) {
-        db.createObjectStore("products", { keyPath: "id" });
-      }
-    };
-
-    dbRequest.onsuccess = function(event) {
-      db = event.target.result;
-      fetchAllProductsFromDB();
-    };
-
-    function fetchAllProductsFromDB() {
-      if (!db) {
-        loadFallbackProducts();
-        return;
-      }
-      const transaction = db.transaction(["products"], "readonly");
-      const store = transaction.objectStore("products");
-      const request = store.getAll();
-
-      request.onsuccess = function() {
-        productsCache = request.result || [];
-        if (productsCache.length === 0) {
-          // Проверим старый localStorage на случай миграции
-          const oldLocal = localStorage.getItem('black_store_permanent_products');
-          if (oldLocal) {
-            try {
-              productsCache = JSON.parse(oldLocal);
-              productsCache.forEach(p => saveProductToDB(p));
-            } catch(e) {}
-          }
+    // Загрузка товаров из облака при старте + автообновление каждые 5 секунд
+    function fetchCloudProducts() {
+      fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+        headers: { 'X-Master-Key': API_KEY }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.record && Array.isArray(data.record.products)) {
+          productsCache = data.record.products;
+          renderCatalog();
+          renderAdminTable();
+          document.getElementById('syncStatus').innerText = "☁️ Облачная база активна (синхронизировано)";
         }
+      })
+      .catch(err => {
+        document.getElementById('syncStatus').innerText = "⚠️ Ошибка связи с облаком, работаем из кэша";
+        const local = localStorage.getItem('black_store_fallback');
+        if (local) {
+          productsCache = JSON.parse(local);
+          renderCatalog();
+          renderAdminTable();
+        }
+      });
+    }
+
+    // Сохранение всей базы товаров в облако
+    function saveCloudProducts(callback) {
+      document.getElementById('syncStatus').innerText = "⏳ Сохранение в облако...";
+      fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': API_KEY
+        },
+        body: JSON.stringify({ products: productsCache })
+      })
+      .then(res => res.json())
+      .then(() => {
+        document.getElementById('syncStatus').innerText = "☁️ Изменения сохранены для всех пользователей!";
+        localStorage.setItem('black_store_fallback', JSON.stringify(productsCache));
         renderCatalog();
         renderAdminTable();
-      };
-
-      request.onerror = function() {
-        loadFallbackProducts();
-      };
-    }
-
-    function saveProductToDB(product, callback) {
-      if (!db) {
-        saveFallbackProducts(product, callback);
-        return;
-      }
-      const transaction = db.transaction(["products"], "readwrite");
-      const store = transaction.objectStore("products");
-      store.put(product);
-
-      transaction.oncomplete = function() {
-        fetchAllProductsFromDB();
         if (callback) callback();
-      };
-      transaction.onerror = function() {
-        saveFallbackProducts(product, callback);
-      };
+      })
+      .catch(err => {
+        alert("Ошибка сохранения в облако. Проверьте интернет.");
+      });
     }
 
-    function deleteProductFromDB(id, callback) {
-      if (!db) {
-        deleteFallbackProducts(id, callback);
-        return;
-      }
-      const transaction = db.transaction(["products"], "readwrite");
-      const store = transaction.objectStore("products");
-      store.delete(id);
-
-      transaction.oncomplete = function() {
-        fetchAllProductsFromDB();
-        if (callback) callback();
-      };
-      transaction.onerror = function() {
-        deleteFallbackProducts(id, callback);
-      };
-    }
-
-    // Резервные функции на случай блокировки IndexedDB браузером
-    function loadFallbackProducts() {
-      const stored = localStorage.getItem('black_store_safe_products');
-      productsCache = stored ? JSON.parse(stored) : [];
-      renderCatalog();
-      renderAdminTable();
-    }
-
-    function saveFallbackProducts(product, callback) {
-      const index = productsCache.findIndex(p => p.id === product.id);
-      if (index >= 0) {
-        productsCache[index] = product;
-      } else {
-        productsCache.push(product);
-      }
-      localStorage.setItem('black_store_safe_products', JSON.stringify(productsCache));
-      renderCatalog();
-      renderAdminTable();
-      if (callback) callback();
-    }
-
-    function deleteFallbackProducts(id, callback) {
-      productsCache = productsCache.filter(p => p.id !== id);
-      localStorage.setItem('black_store_safe_products', JSON.stringify(productsCache));
-      renderCatalog();
-      renderAdminTable();
-      if (callback) callback();
-    }
+    // Первичная загрузка и запуск автосинхронизации
+    fetchCloudProducts();
+    setInterval(fetchCloudProducts, 6000); // Проверять обновления у других каждые 6 сек
 
     function getProducts() {
       return productsCache;
-    }
-
-    // --- РЕЗЕРВНОЕ КОПИРОВАНИЕ И ВОССТАНОВЛЕНИЕ В ФАЙЛ ---
-    function exportBackup() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(productsCache));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", "black_store_backup.json");
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    }
-
-    function importBackup(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (Array.isArray(imported)) {
-            productsCache = imported;
-            if (db) {
-              const tx = db.transaction(["products"], "readwrite");
-              const store = tx.objectStore("products");
-              store.clear();
-              productsCache.forEach(p => store.put(p));
-            }
-            localStorage.setItem('black_store_safe_products', JSON.stringify(productsCache));
-            renderCatalog();
-            renderAdminTable();
-            alert("База успешно восстановлена из бэкапа!");
-          } else {
-            alert("Неверный формат файла бэкапа.");
-          }
-        } catch(err) {
-          alert("Ошибка при чтении файла.");
-        }
-      };
-      reader.readAsText(file);
     }
 
     function getCart() {
@@ -1000,6 +897,7 @@
           images: currentUploadedImages.length > 0 ? currentUploadedImages : (existingProduct.images || [existingProduct.img]),
           img: currentUploadedImages.length > 0 ? currentUploadedImages[0] : existingProduct.img
         };
+        productsCache = productsCache.map(p => p.id == id ? productObj : p);
       } else {
         if (currentUploadedImages.length === 0) {
           alert("Загрузите хотя бы одно изображение!");
@@ -1010,9 +908,10 @@
           images: currentUploadedImages,
           img: currentUploadedImages[0]
         };
+        productsCache.push(productObj);
       }
 
-      saveProductToDB(productObj, () => {
+      saveCloudProducts(() => {
         resetForm();
       });
     });
@@ -1037,7 +936,8 @@
 
     function deleteProduct(id) {
       if (confirm("Удалить товар?")) {
-        deleteProductFromDB(id);
+        productsCache = productsCache.filter(p => p.id !== id);
+        saveCloudProducts();
       }
     }
 
