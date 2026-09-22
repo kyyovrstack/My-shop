@@ -102,7 +102,7 @@
     
     .product-badge {
       position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-      color: #fff; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase;
+      color: #fff; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; z-index: 2;
     }
 
     .product-img { width: 100%; height: 160px; object-fit: cover; background-color: #18181b; }
@@ -132,11 +132,31 @@
     }
     .modal-close {
       position: absolute; top: 12px; right: 12px; background: none; border: none;
-      color: var(--text-muted); font-size: 1.2rem; cursor: pointer;
+      color: var(--text-muted); font-size: 1.2rem; cursor: pointer; z-index: 10;
     }
 
-    /* Просмотр товара */
-    .detail-img { width: 100%; height: 240px; object-fit: cover; border-radius: 10px; margin-bottom: 1rem; }
+    /* Слайдер галереи товара */
+    .gallery-container { position: relative; width: 100%; margin-bottom: 0.8rem; }
+    .detail-img { width: 100%; height: 260px; object-fit: cover; border-radius: 10px; display: block; }
+    .gallery-btn {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(0,0,0,0.6); color: white; border: none;
+      width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+      font-size: 1rem; display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px); transition: background 0.2s;
+    }
+    .gallery-btn:hover { background: rgba(0,0,0,0.9); }
+    .gallery-btn.prev { left: 8px; }
+    .gallery-btn.next { right: 8px; }
+
+    /* Миниатюры галереи */
+    .gallery-thumbs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 1rem; padding-bottom: 4px; }
+    .thumb-img {
+      width: 48px; height: 48px; object-fit: cover; border-radius: 6px;
+      cursor: pointer; border: 2px solid transparent; opacity: 0.6; transition: all 0.2s; flex-shrink: 0;
+    }
+    .thumb-img.active, .thumb-img:hover { opacity: 1; border-color: var(--accent); }
+
     .detail-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 0.4rem; }
     .detail-price { font-size: 1.3rem; font-weight: 900; color: var(--pink); margin-bottom: 0.8rem; }
     .detail-desc { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4; }
@@ -163,9 +183,7 @@
     .cart-item-clickable {
       display: flex; gap: 10px; align-items: center; flex-grow: 1; cursor: pointer;
     }
-    .cart-item-clickable:hover {
-      opacity: 0.85;
-    }
+    .cart-item-clickable:hover { opacity: 0.85; }
     .cart-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
     .cart-item-info { flex-grow: 1; }
     .cart-item-title { font-size: 0.85rem; font-weight: 600; }
@@ -192,8 +210,8 @@
       width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border);
       background: #000000; color: white; font-size: 0.9rem;
     }
-    .preview-container { margin-top: 8px; display: none; }
-    .preview-container img { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; }
+    .preview-container { margin-top: 8px; display: none; flex-wrap: wrap; gap: 6px; }
+    .preview-container img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
     .admin-actions { display: flex; gap: 8px; margin-top: 1rem; }
     .btn-save { background: #10b981; color: white; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; }
     .btn-cancel { background: #3f3f46; color: white; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; flex: 1; }
@@ -237,7 +255,7 @@
         <input type="hidden" id="product-id">
         <div class="form-group">
           <label>Название товара</label>
-          <input type="text" id="product-title" required placeholder="Напр: Худи Oversize">
+          <input type="text" id="product-title" required placeholder="Напр: Худи Ralph Lauren">
         </div>
         <div class="form-group">
           <label>Категория</label>
@@ -248,22 +266,20 @@
         </div>
         <div class="form-group">
           <label>Размеры (через запятую)</label>
-          <input type="text" id="product-sizes" placeholder="Пример: S, M, L, XL или 40, 41, 42">
+          <input type="text" id="product-sizes" placeholder="Пример: 39, 40, 41, 42">
         </div>
         <div class="form-group">
           <label>Цена (₽)</label>
-          <input type="number" id="product-price" required placeholder="4500">
+          <input type="number" id="product-price" required placeholder="5500">
         </div>
         <div class="form-group">
           <label>Описание товара</label>
           <textarea id="product-desc" rows="3" placeholder="Состав, особенности, наличие..."></textarea>
         </div>
         <div class="form-group">
-          <label>Фотография из галереи</label>
-          <input type="file" id="product-file" accept="image/*">
-          <div class="preview-container" id="preview-box">
-            <img id="img-preview" src="" alt="Превью">
-          </div>
+          <label>Фотографии товара (можно выбрать несколько)</label>
+          <input type="file" id="product-files" accept="image/*" multiple>
+          <div class="preview-container" id="preview-box"></div>
         </div>
         <div class="admin-actions">
           <button type="submit" class="btn-save">Сохранить</button>
@@ -316,7 +332,15 @@
   <div class="modal-overlay" id="productModal">
     <div class="modal-card">
       <button class="modal-close" onclick="closeModal('productModal')">✕</button>
-      <img id="detailImg" class="detail-img" src="" alt="">
+      
+      <!-- Галерея слайдер -->
+      <div class="gallery-container">
+        <img id="detailImg" class="detail-img" src="" alt="">
+        <button class="gallery-btn prev" id="prevImgBtn" onclick="changeImage(-1)">❮</button>
+        <button class="gallery-btn next" id="nextImgBtn" onclick="changeImage(1)">❯</button>
+      </div>
+      <div class="gallery-thumbs" id="galleryThumbs"></div>
+
       <h2 id="detailTitle" class="detail-title"></h2>
       <div id="detailPrice" class="detail-price"></div>
       <p id="detailDesc" class="detail-desc"></p>
@@ -343,10 +367,11 @@
   </div>
 
   <script>
-    let currentImageBase64 = '';
+    let currentUploadedImages = [];
     let currentCategoryFilter = 'all';
     let selectedSize = '';
     let currentActiveProduct = null;
+    let currentImageIndex = 0;
     
     let cart = getCart();
 
@@ -364,7 +389,7 @@
         renderCatalog();
         renderAdminTable();
       } catch (e) {
-        alert("Ошибка: картинка слишком большая!");
+        alert("Ошибка: Изображения занимают слишком много памяти! Попробуйте загрузить менее объемные снимки.");
       }
     }
 
@@ -412,16 +437,27 @@
 
     document.getElementById('adminPasswordInput').addEventListener('keyup', e => { if (e.key === 'Enter') checkPassword(); });
 
-    document.getElementById('product-file').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-          currentImageBase64 = event.target.result;
-          document.getElementById('img-preview').src = currentImageBase64;
-          document.getElementById('preview-box').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+    // Мультизагрузка изображений в админке
+    document.getElementById('product-files').addEventListener('change', function(e) {
+      const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        currentUploadedImages = [];
+        const previewBox = document.getElementById('preview-box');
+        previewBox.innerHTML = '';
+        previewBox.style.display = 'flex';
+
+        let filesRead = 0;
+        files.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            currentUploadedImages.push(event.target.result);
+            const img = document.createElement('img');
+            img.src = event.target.result;
+            previewBox.appendChild(img);
+            filesRead++;
+          };
+          reader.readAsDataURL(file);
+        });
       }
     });
 
@@ -450,10 +486,12 @@
 
       filtered.forEach(p => {
         const catLabel = p.category === 'clothes' ? 'Одежда' : 'Обувь';
+        const mainImg = p.images && p.images.length > 0 ? p.images[0] : (p.img || 'https://via.placeholder.com/200');
+        
         grid.innerHTML += `
           <div class="product-card" onclick="openProductModal(${p.id})">
             <span class="product-badge">${catLabel}</span>
-            <img src="${p.img || 'https://via.placeholder.com/200'}" alt="${p.title}" class="product-img">
+            <img src="${mainImg}" alt="${p.title}" class="product-img">
             <div class="product-info">
               <div>
                 <div class="product-title">${p.title}</div>
@@ -466,15 +504,21 @@
       });
     }
 
-    // --- ПРОСМОТР ТОВАРА ---
+    // --- ПРОСМОТР ТОВАРА & ГАЛЕРЕЯ ---
     function openProductModal(id, initialSize = '') {
       const p = getProducts().find(prod => prod.id === id);
       if (!p) return;
 
       currentActiveProduct = p;
       selectedSize = initialSize;
+      currentImageIndex = 0;
 
-      document.getElementById('detailImg').src = p.img;
+      // Получение всех картинок
+      let images = p.images && p.images.length > 0 ? p.images : [p.img || 'https://via.placeholder.com/200'];
+      currentActiveProduct.imagesList = images;
+
+      updateGalleryView();
+
       document.getElementById('detailTitle').innerText = p.title;
       document.getElementById('detailPrice').innerText = `${p.price} ₽`;
       document.getElementById('detailDesc').innerText = p.desc || 'Описание отсутствует.';
@@ -517,9 +561,48 @@
         closeModal('productModal');
       };
 
-      // Перекрываем модалку корзины при открытии модалки товара
       closeModal('cartModal');
       document.getElementById('productModal').style.display = 'flex';
+    }
+
+    function updateGalleryView() {
+      const images = currentActiveProduct.imagesList;
+      document.getElementById('detailImg').src = images[currentImageIndex];
+
+      const prevBtn = document.getElementById('prevImgBtn');
+      const nextBtn = document.getElementById('nextImgBtn');
+      const thumbsContainer = document.getElementById('galleryThumbs');
+
+      thumbsContainer.innerHTML = '';
+
+      if (images.length > 1) {
+        prevBtn.style.display = 'flex';
+        nextBtn.style.display = 'flex';
+        thumbsContainer.style.display = 'flex';
+
+        images.forEach((imgSrc, idx) => {
+          const thumb = document.createElement('img');
+          thumb.src = imgSrc;
+          thumb.className = `thumb-img ${idx === currentImageIndex ? 'active' : ''}`;
+          thumb.onclick = () => {
+            currentImageIndex = idx;
+            updateGalleryView();
+          };
+          thumbsContainer.appendChild(thumb);
+        });
+      } else {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+        thumbsContainer.style.display = 'none';
+      }
+    }
+
+    function changeImage(direction) {
+      const images = currentActiveProduct.imagesList;
+      currentImageIndex += direction;
+      if (currentImageIndex < 0) currentImageIndex = images.length - 1;
+      if (currentImageIndex >= images.length) currentImageIndex = 0;
+      updateGalleryView();
     }
 
     function updateDetailBuyLink() {
@@ -571,10 +654,13 @@
         total += Number(p.price);
         const sizeInfo = p.selectedSize ? ` [Размер: ${p.selectedSize}]` : '';
         textItems.push(`• ${p.title}${sizeInfo} (${p.price} ₽)`);
+
+        const displayImg = (p.images && p.images.length > 0) ? p.images[0] : (p.img || '');
+
         list.innerHTML += `
           <div class="cart-item">
             <div class="cart-item-clickable" onclick="openProductModal(${p.id}, '${p.selectedSize || ''}')">
-              <img src="${p.img}" alt="">
+              <img src="${displayImg}" alt="">
               <div class="cart-item-info">
                 <div class="cart-item-title">${p.title}</div>
                 ${p.selectedSize ? `<div class="cart-item-size">Размер: ${p.selectedSize}</div>` : ''}
@@ -600,9 +686,11 @@
 
       products.forEach(p => {
         const catLabel = p.category === 'clothes' ? 'Одежда' : 'Обувь';
+        const displayImg = (p.images && p.images.length > 0) ? p.images[0] : (p.img || '');
+        
         tbody.innerHTML += `
           <tr>
-            <td><img src="${p.img}" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px;"></td>
+            <td><img src="${displayImg}" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px;"></td>
             <td>${p.title}</td>
             <td>${catLabel}</td>
             <td>${p.sizes || '-'}</td>
@@ -628,13 +716,26 @@
       let products = getProducts();
 
       if (id) {
-        products = products.map(p => p.id == id ? { id: Number(id), title, category, sizes, price, desc, img: currentImageBase64 || p.img } : p);
+        products = products.map(p => {
+          if (p.id == id) {
+            return {
+              id: Number(id), title, category, sizes, price, desc,
+              images: currentUploadedImages.length > 0 ? currentUploadedImages : (p.images || [p.img]),
+              img: currentUploadedImages.length > 0 ? currentUploadedImages[0] : p.img
+            };
+          }
+          return p;
+        });
       } else {
-        if (!currentImageBase64) {
-          alert("Выберите изображение!");
+        if (currentUploadedImages.length === 0) {
+          alert("Выберите хотя бы одно изображение!");
           return;
         }
-        products.push({ id: Date.now(), title, category, sizes, price, desc, img: currentImageBase64 });
+        products.push({
+          id: Date.now(), title, category, sizes, price, desc,
+          images: currentUploadedImages,
+          img: currentUploadedImages[0]
+        });
       }
 
       saveProducts(products);
@@ -650,9 +751,18 @@
         document.getElementById('product-sizes').value = p.sizes || '';
         document.getElementById('product-price').value = p.price;
         document.getElementById('product-desc').value = p.desc || '';
-        currentImageBase64 = p.img;
-        document.getElementById('img-preview').src = p.img;
-        document.getElementById('preview-box').style.display = 'block';
+        
+        currentUploadedImages = p.images || (p.img ? [p.img] : []);
+        
+        const previewBox = document.getElementById('preview-box');
+        previewBox.innerHTML = '';
+        currentUploadedImages.forEach(src => {
+          const img = document.createElement('img');
+          img.src = src;
+          previewBox.appendChild(img);
+        });
+        previewBox.style.display = 'flex';
+
         window.scrollTo({ top: document.getElementById('admin-panel').offsetTop - 20, behavior: 'smooth' });
       }
     }
@@ -667,10 +777,11 @@
       document.getElementById('product-id').value = '';
       document.getElementById('product-form').reset();
       document.getElementById('preview-box').style.display = 'none';
-      currentImageBase64 = '';
+      document.getElementById('preview-box').innerHTML = '';
+      currentUploadedImages = [];
     }
 
-    // Инициализация сайта
+    // Инициализация
     updateCartBadge();
     renderCatalog();
   </script>
