@@ -141,7 +141,7 @@
     .detail-price { font-size: 1.3rem; font-weight: 900; color: var(--pink); margin-bottom: 0.8rem; }
     .detail-desc { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4; }
 
-    /* Блок с выбором размеров */
+    /* Размеры */
     .size-section { margin-bottom: 1.2rem; }
     .size-title { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
     .size-list { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -164,7 +164,6 @@
     .cart-remove { background: none; border: none; color: #ef4444; font-size: 1rem; cursor: pointer; }
     .cart-total { font-size: 1.1rem; font-weight: 800; text-align: right; margin: 1rem 0; }
 
-    /* Кнопки действия */
     .btn-action-primary {
       width: 100%; background: linear-gradient(135deg, var(--accent), var(--pink));
       color: white; border: none; padding: 0.8rem; border-radius: 10px;
@@ -312,7 +311,6 @@
       <div id="detailPrice" class="detail-price"></div>
       <p id="detailDesc" class="detail-desc"></p>
 
-      <!-- Размеры -->
       <div class="size-section" id="detailSizeSection">
         <div class="size-title">Выберите размер:</div>
         <div class="size-list" id="detailSizeList"></div>
@@ -339,10 +337,13 @@
     let currentCategoryFilter = 'all';
     let selectedSize = '';
     let currentActiveProduct = null;
-    let cart = [];
+    
+    // Загрузка сохраненной корзины при загрузке страницы
+    let cart = getCart();
 
     const TG_ACCOUNT = "GemblF";
 
+    // --- РАБОТА С ХРАНИЛИЩЕМ ---
     function getProducts() {
       const stored = localStorage.getItem('black_store_products');
       return stored ? JSON.parse(stored) : [];
@@ -356,6 +357,16 @@
       } catch (e) {
         alert("Ошибка: картинка слишком большая!");
       }
+    }
+
+    function getCart() {
+      const stored = localStorage.getItem('black_store_user_cart');
+      return stored ? JSON.parse(stored) : [];
+    }
+
+    function saveCart() {
+      localStorage.setItem('black_store_user_cart', JSON.stringify(cart));
+      updateCartBadge();
     }
 
     function scrollToCatalog() {
@@ -459,7 +470,6 @@
       document.getElementById('detailPrice').innerText = `${p.price} ₽`;
       document.getElementById('detailDesc').innerText = p.desc || 'Описание отсутствует.';
 
-      // Парсинг и вывод размеров
       const sizeListContainer = document.getElementById('detailSizeList');
       const sizeSection = document.getElementById('detailSizeSection');
       sizeListContainer.innerHTML = '';
@@ -510,16 +520,16 @@
     // --- КОРЗИНА ---
     function addToCart(product, size) {
       cart.push({ ...product, selectedSize: size });
-      updateCart();
+      saveCart();
     }
 
     function removeFromCart(index) {
       cart.splice(index, 1);
-      updateCart();
+      saveCart();
       renderCartModal();
     }
 
-    function updateCart() {
+    function updateCartBadge() {
       document.getElementById('cartCount').innerText = cart.length;
     }
 
@@ -644,6 +654,8 @@
       currentImageBase64 = '';
     }
 
+    // Инициализация сайта
+    updateCartBadge();
     renderCatalog();
   </script>
 </body>
