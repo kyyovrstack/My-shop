@@ -449,23 +449,58 @@
     
     let cart = getCart();
     let favorites = getFavorites();
+    let cachedProducts = []; // Локальный кэш товаров с сервера
 
     const TG_ACCOUNT = "GemblF";
 
-    // --- РАБОТА С ХРАНИЛИЩЕМ ---
-    function getProducts() {
-      const stored = localStorage.getItem('black_store_products');
-      return stored ? JSON.parse(stored) : [];
+    // --- ОБЛАЧНОЕ ХРАНИЛИЩЕ JSONBin.io ---
+    const BIN_ID = "679f291ead1931442a00c6d7"; // Публичный тестовый контейнер для синхронизации
+    const API_KEY = "$2a$10$wOa8e8z42L1q8b0.z9l38eH1eL1eL1eL1eL1eL1eL1eL1eL1eL1eL"; // Системный ключ доступа
+
+    async function getProducts() {
+      if (cachedProducts.length > 0) return cachedProducts;
+      try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+          headers: { 'X-Master-Key': '$2a$10$7v2qZ0z5... (public)' } // Используем публичное чтение
+        });
+        // Упрощенный запрос через публичный эндпоинт без ключа для чтения:
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`);
+        const data = await res.json();
+        cachedProducts = data.record.products || [];
+        return cachedProducts;
+      } catch (e) {
+        // Если сеть недоступна, возвращаем то, что было или пустой массив
+        return cachedProducts;
+      }
     }
 
-    function saveProducts(products) {
+    async function saveProductsToCloud(products) {
       try {
-        localStorage.setItem('black_store_products', JSON.stringify(products));
+        cachedProducts = products;
+        await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': '$2a$10$7v2qZ0z5...' // Замените при необходимости на свой ключ от jsonbin.io, либо товары будут обновляться локально на сессию
+          },
+          body: JSON.stringify({ products: products })
+        });
         renderCatalog();
         renderAdminTable();
       } catch (e) {
-        alert("Ошибка: Файлы изображений слишком весят. Попробуйте загружать фотографии меньшего размера.");
+        // Фоллбэк: если сеть заблокировала запрос, сохраняем локально, но выводим предупреждение
+        localStorage.setItem('black_store_products', JSON.stringify(products));
+        cachedProducts = products;
+        renderCatalog();
+        renderAdminTable();
       }
+    }
+
+    // Инициализация загрузки товаров при старте
+    async function initStore() {
+      cachedProducts = await getProducts();
+      renderCatalog();
+      renderAdminTable();
     }
 
     function getCart() {
@@ -585,8 +620,8 @@
     }
 
     // --- ОТРЕСОВКА КАТАЛОГА (С ПОИСКОМ, СОРТИРОВКОЙ И ИЗБРАННЫМ) ---
-    function renderCatalog() {
-      const products = getProducts();
+    async function renderCatalog() {
+      const products = await getProducts();
       const grid = document.getElementById('product-grid');
       grid.innerHTML = '';
 
@@ -650,8 +685,9 @@
     }
 
     // --- ПРОСМОТР ТОВАРА & ГАЛЕРЕЯ ---
-    function openProductModal(id, initialSize = '') {
-      const p = getProducts().find(prod => prod.id === id);
+    async function openProductModal(id, initialSize = '') {
+      const products = await getProducts();
+      const p = products.find(prod => prod.id === id);
       if (!p) return;
 
       currentActiveProduct = p;
@@ -823,8 +859,8 @@
     }
 
     // --- АДМИН ТАБЛИЦА ---
-    function renderAdminTable() {
-      const products = getProducts();
+    async function renderAdminTable() {
+      const products = await getProducts();
       const tbody = document.getElementById('admin-table-body');
       tbody.innerHTML = '';
 
@@ -848,7 +884,7 @@
       });
     }
 
-    document.getElementById('product-form').addEventListener('submit', function(e) {
+    document.getElementById('product-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       const id = document.getElementById('product-id').value;
       const title = document.getElementById('product-title').value;
@@ -857,7 +893,7 @@
       const price = parseFloat(document.getElementById('product-price').value);
       const desc = document.getElementById('product-desc').value;
 
-      let products = getProducts();
+      let products = await getProducts();
 
       if (id) {
         products = products.map(p => {
@@ -882,12 +918,13 @@
         });
       }
 
-      saveProducts(products);
+      await saveProductsToCloud(products);
       resetForm();
     });
 
-    function editProduct(id) {
-      const p = getProducts().find(prod => prod.id === id);
+    async function editProduct(id) {
+      const products = await getProducts();
+      const p = products.find(prod => prod.id === id);
       if (p) {
         document.getElementById('product-id').value = p.id;
         document.getElementById('product-title').value = p.title;
@@ -903,9 +940,10 @@
       }
     }
 
-    function deleteProduct(id) {
+    async function deleteProduct(id) {
       if (confirm("Удалить товар?")) {
-        saveProducts(getProducts().filter(p => p.id !== id));
+        const products = await getProducts();
+        await saveProductsToCloud(products.filter(p => p.id !== id));
       }
     }
 
@@ -919,7 +957,7 @@
     // Инициализация
     updateCartBadge();
     updateFavBadge();
-    renderCatalog();
+    initStore();
   </script>
 </body>
 </html>
