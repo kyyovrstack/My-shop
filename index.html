@@ -155,13 +155,23 @@
     }
 
     /* Корзина */
-    .cart-item { display: flex; gap: 10px; align-items: center; margin-bottom: 0.8rem; border-bottom: 1px solid var(--border); padding-bottom: 0.8rem; }
+    .cart-item {
+      display: flex; gap: 10px; align-items: center; margin-bottom: 0.8rem;
+      border-bottom: 1px solid var(--border); padding-bottom: 0.8rem;
+      border-radius: 8px; padding: 6px; transition: background 0.2s;
+    }
+    .cart-item-clickable {
+      display: flex; gap: 10px; align-items: center; flex-grow: 1; cursor: pointer;
+    }
+    .cart-item-clickable:hover {
+      opacity: 0.85;
+    }
     .cart-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
     .cart-item-info { flex-grow: 1; }
     .cart-item-title { font-size: 0.85rem; font-weight: 600; }
     .cart-item-size { font-size: 0.75rem; color: var(--accent); font-weight: 600; margin-top: 2px; }
     .cart-item-price { font-size: 0.85rem; color: var(--pink); font-weight: 700; margin-top: 2px; }
-    .cart-remove { background: none; border: none; color: #ef4444; font-size: 1rem; cursor: pointer; }
+    .cart-remove { background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; }
     .cart-total { font-size: 1.1rem; font-weight: 800; text-align: right; margin: 1rem 0; }
 
     .btn-action-primary {
@@ -338,7 +348,6 @@
     let selectedSize = '';
     let currentActiveProduct = null;
     
-    // Загрузка сохраненной корзины при загрузке страницы
     let cart = getCart();
 
     const TG_ACCOUNT = "GemblF";
@@ -458,12 +467,12 @@
     }
 
     // --- ПРОСМОТР ТОВАРА ---
-    function openProductModal(id) {
+    function openProductModal(id, initialSize = '') {
       const p = getProducts().find(prod => prod.id === id);
       if (!p) return;
 
       currentActiveProduct = p;
-      selectedSize = '';
+      selectedSize = initialSize;
 
       document.getElementById('detailImg').src = p.img;
       document.getElementById('detailTitle').innerText = p.title;
@@ -478,13 +487,16 @@
         sizeSection.style.display = 'block';
         const sizesArr = p.sizes.split(',').map(s => s.trim()).filter(s => s !== '');
         
-        sizesArr.forEach((s, idx) => {
+        if (!selectedSize && sizesArr.length > 0) {
+          selectedSize = sizesArr[0];
+        }
+
+        sizesArr.forEach((s) => {
           const chip = document.createElement('div');
           chip.className = 'size-chip';
           chip.innerText = s;
-          if (idx === 0) {
+          if (s === selectedSize) {
             chip.classList.add('active');
-            selectedSize = s;
           }
           chip.onclick = () => {
             document.querySelectorAll('.size-chip').forEach(c => c.classList.remove('active'));
@@ -505,6 +517,8 @@
         closeModal('productModal');
       };
 
+      // Перекрываем модалку корзины при открытии модалки товара
+      closeModal('cartModal');
       document.getElementById('productModal').style.display = 'flex';
     }
 
@@ -559,13 +573,15 @@
         textItems.push(`• ${p.title}${sizeInfo} (${p.price} ₽)`);
         list.innerHTML += `
           <div class="cart-item">
-            <img src="${p.img}" alt="">
-            <div class="cart-item-info">
-              <div class="cart-item-title">${p.title}</div>
-              ${p.selectedSize ? `<div class="cart-item-size">Размер: ${p.selectedSize}</div>` : ''}
-              <div class="cart-item-price">${p.price} ₽</div>
+            <div class="cart-item-clickable" onclick="openProductModal(${p.id}, '${p.selectedSize || ''}')">
+              <img src="${p.img}" alt="">
+              <div class="cart-item-info">
+                <div class="cart-item-title">${p.title}</div>
+                ${p.selectedSize ? `<div class="cart-item-size">Размер: ${p.selectedSize}</div>` : ''}
+                <div class="cart-item-price">${p.price} ₽</div>
+              </div>
             </div>
-            <button class="cart-remove" onclick="removeFromCart(${index})">✕</button>
+            <button class="cart-remove" onclick="event.stopPropagation(); removeFromCart(${index})">✕</button>
           </div>
         `;
       });
