@@ -442,8 +442,36 @@
     let currentActiveProduct = null;
     let currentImageIndex = 0;
     
-    // Инициализация кэша из localStorage на случай офлайна или задержки сети
-    let productsCache = JSON.parse(localStorage.getItem('black_store_local_backup') || '[]');
+    // Стандартные демо-товары на случай, если облако пудое или недоступно
+    const defaultProducts = [
+      {
+        id: 1,
+        title: "Худи Oversize Black",
+        category: "clothes",
+        sizes: "S, M, L, XL",
+        price: 4900,
+        desc: "Плотный хлопок, премиальное качество, оверсайз крой.",
+        img: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80",
+        images: ["https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80"]
+      },
+      {
+        id: 2,
+        title: "Кроссовки Runner Tech",
+        category: "shoes",
+        sizes: "40, 41, 42, 43, 44",
+        price: 8900,
+        desc: "Стильная спортивная обувь с амортизирующей подошвой.",
+        img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80",
+        images: ["https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80"]
+      }
+    ];
+
+    // Загрузка кэша или дефолтных товаров
+    let productsCache = JSON.parse(localStorage.getItem('black_store_local_backup') || 'null');
+    if (!productsCache || !Array.isArray(productsCache) || productsCache.length === 0) {
+      productsCache = defaultProducts;
+      localStorage.setItem('black_store_local_backup', JSON.stringify(productsCache));
+    }
     
     let cart = getCart();
     let favorites = getFavorites();
@@ -452,7 +480,7 @@
     const BIN_ID = "6ab2cbd7ffd5d1605323fa87";
     const API_KEY = "$2a$10$w85xN8N4m6F/YvK0e9Vl4.8R6P9Ff7PZ8t9K5W0v2Vb3m4N6x6n5K";
 
-    // Безопасная загрузка из облака с защитой от затирания данных
+    // Синхронизация с облаком с защитой от пустых ответов
     function fetchCloudProducts() {
       fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?t=${Date.now()}`, {
         headers: { 
@@ -463,31 +491,27 @@
       })
       .then(res => res.json())
       .then(data => {
-        if (data && data.record && Array.isArray(data.record.products)) {
-          const cloudProducts = data.record.products;
-          // Обновляем кэш только если в облаке есть данные или если локально пусто
-          if (cloudProducts.length > 0 || productsCache.length === 0) {
-            productsCache = cloudProducts;
-            localStorage.setItem('black_store_local_backup', JSON.stringify(productsCache));
-            renderCatalog();
-            renderAdminTable();
-          }
-          document.getElementById('syncStatus').innerText = "☁️ Синхронизировано в реальном времени";
+        if (data && data.record && Array.isArray(data.record.products) && data.record.products.length > 0) {
+          productsCache = data.record.products;
+          localStorage.setItem('black_store_local_backup', JSON.stringify(productsCache));
+          renderCatalog();
+          renderAdminTable();
+          document.getElementById('syncStatus').innerText = "☁️ Синхронизировано из облака";
         }
       })
       .catch(err => {
-        document.getElementById('syncStatus').innerText = "⚠️ Работает оффлайн-режим";
+        document.getElementById('syncStatus').innerText = "⚠️ Автономный режим (офлайн)";
       });
     }
 
-    // Сохранение в облако с обязательной проверкой
+    // Сохранение в облако
     function saveCloudProducts(callback) {
       if (!productsCache || productsCache.length === 0) {
-        alert("Ошибка: попытка сохранить пустой список! Отменено.");
+        alert("Ошибка: список товаров пуст!");
         return;
       }
       
-      document.getElementById('syncStatus').innerText = "⏳ Сохранение в облако...";
+      document.getElementById('syncStatus').innerText = "⏳ Сохранение...";
       localStorage.setItem('black_store_local_backup', JSON.stringify(productsCache));
 
       fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
@@ -500,25 +524,26 @@
       })
       .then(res => res.json())
       .then(() => {
-        document.getElementById('syncStatus').innerText = "☁️ Успешно сохранено для всех!";
+        document.getElementById('syncStatus').innerText = "☁️ Успешно сохранено!";
         renderCatalog();
         renderAdminTable();
         if (callback) callback();
       })
       .catch(err => {
-        alert("Ошибка сохранения в облако. Проверьте интернет-соединение.");
+        document.getElementById('syncStatus').innerText = "⚠️ Сохранено локально (ошибка облака)";
+        renderCatalog();
+        renderAdminTable();
+        if (callback) callback();
       });
     }
 
-    // Первичный рендер из локальной копии, затем подтяжка из облака
+    // Инициализация при запуске
     renderCatalog();
     renderAdminTable();
     fetchCloudProducts();
-    setInterval(fetchCloudProducts, 4000);
+    setInterval(fetchCloudProducts, 5000);
 
-    function getProducts() {
-      return productsCache;
-    }
+    function getProducts() { return productsCache; }
 
     function getCart() {
       const stored = localStorage.getItem('black_store_user_cart');
@@ -543,11 +568,7 @@
     function toggleFavorite(id, event) {
       if (event) event.stopPropagation();
       const index = favorites.indexOf(id);
-      if (index === -1) {
-        favorites.push(id);
-      } else {
-        favorites.splice(index, 1);
-      }
+      if (index === -1) { favorites.push(id); } else { favorites.splice(index, 1); }
       saveFavorites();
       renderCatalog();
     }
@@ -629,9 +650,7 @@
       renderCatalog();
     }
 
-    function handleSearchInput() {
-      renderCatalog();
-    }
+    function handleSearchInput() { renderCatalog(); }
 
     function renderCatalog() {
       const products = getProducts();
@@ -658,11 +677,8 @@
       }
 
       const sortType = document.getElementById('sortSelect').value;
-      if (sortType === 'asc') {
-        filtered.sort((a, b) => a.price - b.price);
-      } else if (sortType === 'desc') {
-        filtered.sort((a, b) => b.price - a.price);
-      }
+      if (sortType === 'asc') { filtered.sort((a, b) => a.price - b.price); }
+      else if (sortType === 'desc') { filtered.sort((a, b) => b.price - a.price); }
 
       if (filtered.length === 0) {
         grid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center; padding: 2rem 0;">Товары не найдены</p>';
@@ -727,9 +743,7 @@
           const chip = document.createElement('div');
           chip.className = 'size-chip';
           chip.innerText = s;
-          if (s === selectedSize) {
-            chip.classList.add('active');
-          }
+          if (s === selectedSize) { chip.classList.add('active'); }
           chip.onclick = () => {
             document.querySelectorAll('.size-chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
