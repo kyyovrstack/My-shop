@@ -452,10 +452,14 @@
     const BIN_ID = "67c9451cad19ca34f813c9e6";
     const API_KEY = "$2a$10$w85xN8N4m6F/YvK0e9Vl4.8R6P9Ff7PZ8t9K5W0v2Vb3m4N6x6n5K";
 
-    // Загрузка товаров из облака при старте + автообновление каждые 5 секунд
+    // Загрузка товаров из облака без кэширования (чтобы сразу видеть изменения у всех)
     function fetchCloudProducts() {
-      fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-        headers: { 'X-Master-Key': API_KEY }
+      fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?t=${Date.now()}`, {
+        headers: { 
+          'X-Master-Key': API_KEY,
+          'X-No-Cache': 'true'
+        },
+        cache: 'no-store'
       })
       .then(res => res.json())
       .then(data => {
@@ -463,17 +467,11 @@
           productsCache = data.record.products;
           renderCatalog();
           renderAdminTable();
-          document.getElementById('syncStatus').innerText = "☁️ Облачная база активна (синхронизировано)";
+          document.getElementById('syncStatus').innerText = "☁️ Синхронизировано в реальном времени";
         }
       })
       .catch(err => {
-        document.getElementById('syncStatus').innerText = "⚠️ Ошибка связи с облаком, работаем из кэша";
-        const local = localStorage.getItem('black_store_fallback');
-        if (local) {
-          productsCache = JSON.parse(local);
-          renderCatalog();
-          renderAdminTable();
-        }
+        document.getElementById('syncStatus').innerText = "⚠️ Ошибка связи с облаком";
       });
     }
 
@@ -490,8 +488,7 @@
       })
       .then(res => res.json())
       .then(() => {
-        document.getElementById('syncStatus').innerText = "☁️ Изменения сохранены для всех пользователей!";
-        localStorage.setItem('black_store_fallback', JSON.stringify(productsCache));
+        document.getElementById('syncStatus').innerText = "☁️ Успешно сохранено для всех!";
         renderCatalog();
         renderAdminTable();
         if (callback) callback();
@@ -501,9 +498,9 @@
       });
     }
 
-    // Первичная загрузка и запуск автосинхронизации
+    // Первичная загрузка и автообновление каждые 3 секунды
     fetchCloudProducts();
-    setInterval(fetchCloudProducts, 6000);
+    setInterval(fetchCloudProducts, 3000);
 
     function getProducts() {
       return productsCache;
