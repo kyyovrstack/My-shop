@@ -124,7 +124,6 @@
       color: #fff; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; z-index: 2;
     }
 
-    /* Кнопка "Избранное" на карточке */
     .fav-btn {
       position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
       border: none; color: #fff; border-radius: 50%; width: 28px; height: 28px;
@@ -164,7 +163,6 @@
       color: var(--text-muted); font-size: 1.2rem; cursor: pointer; z-index: 10;
     }
 
-    /* Слайдер галереи товара */
     .gallery-container { position: relative; width: 100%; margin-bottom: 0.8rem; }
     .detail-img { width: 100%; height: 260px; object-fit: cover; border-radius: 10px; display: block; }
     .gallery-btn {
@@ -178,7 +176,6 @@
     .gallery-btn.prev { left: 8px; }
     .gallery-btn.next { right: 8px; }
 
-    /* Миниатюры галереи */
     .gallery-thumbs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 1rem; padding-bottom: 4px; }
     .thumb-img {
       width: 48px; height: 48px; object-fit: cover; border-radius: 6px;
@@ -190,7 +187,6 @@
     .detail-price { font-size: 1.3rem; font-weight: 900; color: var(--pink); margin-bottom: 0.8rem; }
     .detail-desc { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4; }
 
-    /* Размеры */
     .size-section { margin-bottom: 1.2rem; }
     .size-title { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
     .size-list { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -203,7 +199,6 @@
       background: #ffffff; color: #000000; border-color: #ffffff;
     }
 
-    /* Корзина */
     .cart-item {
       display: flex; gap: 10px; align-items: center; margin-bottom: 0.8rem;
       border-bottom: 1px solid var(--border); padding-bottom: 0.8rem;
@@ -240,7 +235,6 @@
       background: #000000; color: white; font-size: 0.9rem;
     }
 
-    /* Стили для загрузки фото */
     .file-upload-btn {
       display: block; background: #27272a; color: white; border: 1px dashed var(--accent);
       padding: 0.8rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; text-align: center; width: 100%;
@@ -319,7 +313,6 @@
           <textarea id="product-desc" rows="3" placeholder="Состав, особенности, наличие..."></textarea>
         </div>
         
-        <!-- Загрузка фото -->
         <div class="form-group">
           <label>Загрузка фотографий товара</label>
           <label for="single-file-input" class="file-upload-btn">📷 Нажмите, чтобы добавить фото</label>
@@ -349,7 +342,7 @@
       </table>
     </section>
 
-    <!-- Поиск и Фильтры по цене -->
+    <!-- Поиск и Фильтры -->
     <div class="filter-section">
       <div class="search-box">
         <span class="search-icon">🔍</span>
@@ -376,7 +369,7 @@
       </div>
     </div>
 
-    <!-- Категории + Избранное -->
+    <!-- Категории -->
     <div class="categories-nav">
       <button class="cat-btn active" onclick="filterCategory('all', this)">Все товары</button>
       <button class="cat-btn" onclick="filterCategory('clothes', this)">👕 Одежда</button>
@@ -402,12 +395,11 @@
     </div>
   </div>
 
-  <!-- Модалка карточки товара -->
+  <!-- Модалка карточки -->
   <div class="modal-overlay" id="productModal">
     <div class="modal-card">
       <button class="modal-close" onclick="closeModal('productModal')">✕</button>
       
-      <!-- Галерея слайдер -->
       <div class="gallery-container">
         <img id="detailImg" class="detail-img" src="" alt="">
         <button class="gallery-btn prev" id="prevImgBtn" onclick="changeImage(-1)">❮</button>
@@ -452,33 +444,32 @@
 
     const TG_ACCOUNT = "GemblF";
 
-    // --- РАБОТА С ХРАНИЛИЩЕМ С АВТОМАТИЧЕСКИМИ ТОВАРАМИ ПО УМОЛЧАНИЮ ---
     function getProducts() {
       const stored = localStorage.getItem('black_store_products');
       if (stored) {
         return JSON.parse(stored);
       } else {
-        // Начальные товары, чтобы сайт не был пустым у новых пользователей
+        // Ваши базовые товары с корректными фотографиями
         const defaultProducts = [
           {
             id: 1,
-            title: "Худи Black Style",
+            title: "Худи Oversize",
             category: "clothes",
             sizes: "S, M, L, XL",
-            price: 3900,
-            desc: "Премиальное худи оверсайз. Плотный качественный хлопок.",
-            images: ["https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=500&q=80"],
-            img: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=500&q=80"
+            price: 4500,
+            desc: "Плотное брендовое худи черного цвета. Премиум качество.",
+            images: ["https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=500&q=80"],
+            img: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=500&q=80"
           },
           {
             id: 2,
-            title: "Кроссовки Street Dark",
+            title: "Кроссовки Street Flex",
             category: "shoes",
-            sizes: "40, 41, 42, 43, 44",
-            price: 6900,
-            desc: "Удобные повседневные кроссовки. Стильный дизайн.",
-            images: ["https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=500&q=80"],
-            img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=500&q=80"
+            sizes: "40, 41, 42, 43, 44, 45",
+            price: 7900,
+            desc: "Удобная спортивная обувь на каждый день.",
+            images: ["https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=500&q=80"],
+            img: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=500&q=80"
           }
         ];
         localStorage.setItem('black_store_products', JSON.stringify(defaultProducts));
@@ -492,7 +483,7 @@
         renderCatalog();
         renderAdminTable();
       } catch (e) {
-        alert("Ошибка: Файлы изображений слишком весят. Попробуйте загружать фотографии меньшего размера.");
+        alert("Ошибка: Слишком большой размер фотографий. Пожалуйста, сжимайте фото или загружайте меньшего размера.");
       }
     }
 
@@ -540,7 +531,6 @@
       document.getElementById(id).style.display = 'none';
     }
 
-    // --- АДМИНКА ---
     function openPasswordModal() {
       const panel = document.getElementById('admin-panel');
       if (panel.style.display === 'block') {
@@ -566,7 +556,6 @@
 
     document.getElementById('adminPasswordInput').addEventListener('keyup', e => { if (e.key === 'Enter') checkPassword(); });
 
-    // Поочередное добавление фото
     const singleFileInput = document.getElementById('single-file-input');
     singleFileInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
@@ -600,7 +589,6 @@
       renderPreviewImages();
     }
 
-    // --- ФИЛЬТР КАТЕГОРИЙ ---
     function filterCategory(cat, btn) {
       currentCategoryFilter = cat;
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
@@ -612,7 +600,6 @@
       renderCatalog();
     }
 
-    // --- ОТРЕСОВКА КАТАЛОГА (С ПОИСКОМ, СОРТИРОВКОЙ И ИЗБРАННЫМ) ---
     function renderCatalog() {
       const products = getProducts();
       const grid = document.getElementById('product-grid');
@@ -620,27 +607,23 @@
 
       let filtered = [...products];
 
-      // 1. Категории / Избранное
       if (currentCategoryFilter === 'favorites') {
         filtered = filtered.filter(p => favorites.includes(p.id));
       } else if (currentCategoryFilter !== 'all') {
         filtered = filtered.filter(p => p.category === currentCategoryFilter);
       }
 
-      // 2. Живой поиск по названию
       const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
       if (searchQuery !== '') {
         filtered = filtered.filter(p => p.title.toLowerCase().includes(searchQuery));
       }
 
-      // 3. Диапазон цен
       const priceRange = document.getElementById('priceRangeSelect').value;
       if (priceRange !== 'all') {
         const [minPrice, maxPrice] = priceRange.split('-').map(Number);
         filtered = filtered.filter(p => p.price >= minPrice && p.price <= maxPrice);
       }
 
-      // 4. Сортировка по цене
       const sortType = document.getElementById('sortSelect').value;
       if (sortType === 'asc') {
         filtered.sort((a, b) => a.price - b.price);
@@ -677,7 +660,6 @@
       });
     }
 
-    // --- ПРОСМОТР ТОВАРА & ГАЛЕРЕЯ ---
     function openProductModal(id, initialSize = '') {
       const p = getProducts().find(prod => prod.id === id);
       if (!p) return;
@@ -786,7 +768,6 @@
       };
     }
 
-    // --- КОРЗИНА ---
     function addToCart(product, size) {
       cart.push({ ...product, selectedSize: size });
       saveCart();
@@ -850,7 +831,6 @@
       document.getElementById('cartOrderBtn').href = `https://t.me/${TG_ACCOUNT}?text=${orderText}`;
     }
 
-    // --- АДМИН ТАБЛИЦА ---
     function renderAdminTable() {
       const products = getProducts();
       const tbody = document.getElementById('admin-table-body');
@@ -944,7 +924,6 @@
       currentUploadedImages = [];
     }
 
-    // Инициализация
     updateCartBadge();
     updateFavBadge();
     renderCatalog();
