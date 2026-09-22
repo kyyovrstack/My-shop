@@ -444,13 +444,9 @@
 
     const TG_ACCOUNT = "GemblF";
 
-    // Надежное постоянное хранение в памяти браузера
     function getProducts() {
       const stored = localStorage.getItem('black_store_permanent_products');
-      if (stored) {
-        return JSON.parse(stored);
-      }
-      return [];
+      return stored ? JSON.parse(stored) : [];
     }
 
     function saveProducts(products) {
