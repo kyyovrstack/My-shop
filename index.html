@@ -21,6 +21,8 @@
             --border-color: #222222;
             --danger: #ff4d4d;
             --success: #2ecc71;
+            --gradient-btn: linear-gradient(135deg, #ff416c, #ff4b2b);
+            --badge-pink: linear-gradient(135deg, #f72585, #b5179e);
         }
 
         * {
@@ -57,6 +59,9 @@
             letter-spacing: 2px;
             color: var(--accent);
             text-decoration: none;
+            background: linear-gradient(to right, #fff, #aaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .header-actions {
@@ -65,30 +70,64 @@
             align-items: center;
         }
 
-        .icon-btn {
-            background: none;
+        .admin-badge-btn {
+            background: var(--badge-pink);
             border: none;
-            color: var(--text-main);
-            font-size: 1.2rem;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
             cursor: pointer;
-            position: relative;
-            transition: color 0.2s;
+            box-shadow: 0 4px 15px rgba(247, 37, 133, 0.3);
+            transition: opacity 0.2s;
         }
 
-        .icon-btn:hover {
-            color: var(--accent);
+        .admin-badge-btn:hover {
+            opacity: 0.9;
         }
 
-        .badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: var(--accent);
-            color: var(--bg-color);
-            font-size: 0.7rem;
-            font-weight: 700;
+        .cart-header-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .cart-header-badge {
+            background: #ff416c;
+            color: white;
             padding: 2px 6px;
             border-radius: 50%;
+            font-size: 0.75rem;
+        }
+
+        .hero-section {
+            padding: 40px 5% 20px;
+            text-align: center;
+            background: radial-gradient(circle at center, #1a1020 0%, var(--bg-color) 70%);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .hero-section h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .hero-section p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            max-width: 600px;
+            margin: 0 auto 20px;
+            line-height: 1.4;
         }
 
         .main-container {
@@ -99,23 +138,76 @@
             flex: 1;
         }
 
+        .controls-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px 15px 12px 40px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .filter-options-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: 8px;
+            outline: none;
+            font-size: 0.85rem;
+        }
+
         .filters {
             display: flex;
             gap: 10px;
-            margin-bottom: 30px;
             overflow-x: auto;
-            padding-bottom: 10px;
+            padding-bottom: 5px;
         }
 
         .filter-btn {
-            background: var(--card-bg);
+            background: var(--bg-color);
             border: 1px solid var(--border-color);
             color: var(--text-muted);
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 20px;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 0.9rem;
             white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             transition: all 0.2s;
         }
 
@@ -127,43 +219,76 @@
 
         .products-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
         }
 
         .product-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 14px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            position: relative;
             transition: transform 0.2s, border-color 0.2s;
-            cursor: pointer;
         }
 
         .product-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-4px);
             border-color: #444;
+        }
+
+        .product-tag {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-main);
+            z-index: 2;
+            border: 1px solid var(--border-color);
+        }
+
+        .product-fav {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--border-color);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            cursor: pointer;
+            z-index: 2;
+            transition: color 0.2s;
+        }
+
+        .product-fav.active {
+            color: #ff416c;
         }
 
         .product-img-container {
             width: 100%;
-            height: 320px;
-            background: #1a1a1a;
+            height: 280px;
+            background: #151515;
             position: relative;
-            overflow: hidden;
+            cursor: pointer;
         }
 
         .product-img-container img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.3s;
-        }
-
-        .product-card:hover .product-img-container img {
-            transform: scale(1.05);
         }
 
         .product-info {
@@ -172,19 +297,43 @@
             flex-direction: column;
             flex: 1;
             justify-content: space-between;
+            gap: 12px;
         }
 
         .product-title {
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
-            margin-bottom: 8px;
             color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .product-bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .product-price {
             font-size: 1.1rem;
             font-weight: 700;
             color: var(--accent);
+        }
+
+        .btn-card-action {
+            width: 100%;
+            background: var(--accent);
+            color: var(--bg-color);
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-card-action:hover {
+            opacity: 0.9;
         }
 
         /* Модальные окна */
@@ -252,28 +401,28 @@
 
         .detail-gallery img {
             width: 100%;
-            height: 300px;
+            height: 280px;
             object-fit: cover;
             border-radius: 8px;
         }
 
         .detail-info h2 {
             margin-bottom: 10px;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
         }
 
         .detail-price {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 700;
             color: var(--accent);
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         .detail-desc {
             color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-bottom: 20px;
-            line-height: 1.5;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            line-height: 1.4;
         }
 
         .sizes-container {
@@ -281,14 +430,14 @@
         }
 
         .sizes-title {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .sizes-list {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
         }
 
@@ -299,7 +448,7 @@
             padding: 6px 12px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: all 0.2s;
         }
 
@@ -318,7 +467,7 @@
             border-radius: 8px;
             font-weight: 700;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 0.95rem;
             transition: opacity 0.2s;
         }
 
@@ -334,14 +483,15 @@
             color: var(--text-main);
             padding: 10px 15px;
             border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 0.95rem;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            outline: none;
         }
 
         .admin-form label {
             display: block;
-            margin-bottom: 5px;
-            font-size: 0.85rem;
+            margin-bottom: 4px;
+            font-size: 0.8rem;
             color: var(--text-muted);
         }
 
@@ -368,17 +518,18 @@
 
         .cart-item-title {
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
         .cart-item-details {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
-            margin-top: 4px;
+            margin-top: 3px;
         }
 
         .cart-item-price {
             font-weight: 700;
+            font-size: 0.95rem;
         }
 
         .remove-item {
@@ -395,20 +546,41 @@
     <header>
         <a href="#" class="logo">BLACK STORE</a>
         <div class="header-actions">
-            <button class="icon-btn" onclick="openAdminModal()"><i class="fa-solid fa-lock"></i></button>
-            <button class="icon-btn" onclick="openCartModal()">
-                <i class="fa-solid fa-bag-shopping"></i>
-                <span class="badge" id="cart-badge">0</span>
+            <button class="cart-header-btn" onclick="openCartModal()">
+                <i class="fa-solid fa-bag-shopping"></i> Корзина
+                <span class="cart-header-badge" id="cart-badge">0</span>
             </button>
+            <button class="admin-badge-btn" onclick="openAdminModal()">Админка</button>
         </div>
     </header>
 
+    <div class="hero-section">
+        <h1>Эксклюзивная одежда и обувь</h1>
+        <p>Добро пожаловать в BLACK STORE. Стильный премиальный гардероб с доставкой. Листайте ниже и выбирайте лучшие позиции.</p>
+    </div>
+
     <div class="main-container">
-        <div class="filters">
-            <button class="filter-btn active" onclick="filterProducts('all', this)">Все</button>
-            <button class="filter-btn" onclick="filterProducts('clothes', this)">Одежда</button>
-            <button class="filter-btn" onclick="filterProducts('shoes', this)">Обувь</button>
-            <button class="filter-btn" onclick="filterProducts('accessories', this)">Аксессуары</button>
+        
+        <div class="controls-panel">
+            <div class="search-wrapper">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" id="search-input" placeholder="Поиск товара по названию..." oninput="filterAndSearchProducts()">
+            </div>
+            
+            <div class="filter-options-row">
+                <select class="filter-select" id="sort-select" onchange="filterAndSearchProducts()">
+                    <option value="default">Сортировка: По умолчанию</option>
+                    <option value="price-asc">Цена: По возрастанию</option>
+                    <option value="price-desc">Цена: По убыванию</option>
+                </select>
+            </div>
+
+            <div class="filters">
+                <button class="filter-btn active" onclick="setCategory('all', this)"><i class="fa-solid fa-border-all"></i> Все товары</button>
+                <button class="filter-btn" onclick="setCategory('clothes', this)"><i class="fa-solid fa-shirt"></i> Одежда</button>
+                <button class="filter-btn" onclick="setCategory('shoes', this)"><i class="fa-solid fa-shoe-prints"></i> Обувь</button>
+                <button class="filter-btn" onclick="setCategory('favorites', this)"><i class="fa-solid fa-heart"></i> Избранное</button>
+            </div>
         </div>
 
         <div class="products-grid" id="products-grid">
@@ -420,9 +592,7 @@
     <div class="modal" id="product-modal">
         <div class="modal-content">
             <button class="close-modal" onclick="closeModal('product-modal')">&times;</button>
-            <div id="product-modal-body">
-                <!-- Контент товара -->
-            </div>
+            <div id="product-modal-body"></div>
         </div>
     </div>
 
@@ -431,10 +601,8 @@
         <div class="modal-content">
             <button class="close-modal" onclick="closeModal('cart-modal')">&times;</button>
             <h2 style="margin-bottom: 20px;">Корзина</h2>
-            <div id="cart-items-container">
-                <!-- Товары в корзине -->
-            </div>
-            <div id="cart-total" style="font-weight: 700; font-size: 1.2rem; margin: 20px 0;">Итого: 0 ₸</div>
+            <div id="cart-items-container"></div>
+            <div id="cart-total" style="font-weight: 700; font-size: 1.1rem; margin: 20px 0;">Итого: 0 ₸</div>
             <button class="btn-primary" onclick="checkout()">Оформить заказ в Telegram</button>
         </div>
     </div>
@@ -446,17 +614,16 @@
             <h2 style="margin-bottom: 20px;">Добавить товар</h2>
             <div class="admin-form">
                 <label>Название товара</label>
-                <input type="text" id="admin-title" placeholder="Худи Black Style">
+                <input type="text" id="admin-title" placeholder="Худи Ralph Lauren">
                 
                 <label>Категория</label>
                 <select id="admin-category">
                     <option value="clothes">Одежда</option>
                     <option value="shoes">Обувь</option>
-                    <option value="accessories">Аксессуары</option>
                 </select>
 
                 <label>Цена (₸)</label>
-                <input type="number" id="admin-price" placeholder="25000">
+                <input type="number" id="admin-price" placeholder="5500">
 
                 <label>Размеры (через запятую)</label>
                 <input type="text" id="admin-sizes" placeholder="S, M, L, XL">
@@ -473,29 +640,27 @@
     </div>
 
     <script>
-        // СЮДА ПИШИТЕ ВАШИ ТОВАРЫ ПО УМОЛЧАНИЮ (они больше не застрянут в памяти)
         function getProducts() {
             const stored = localStorage.getItem('black_store_products');
             if (stored) {
                 return JSON.parse(stored);
             }
-            
             return [
                 {
                     id: 1,
-                    title: "Худи Oversize",
+                    title: "Худи Ralph Lauren",
                     category: "clothes",
                     sizes: "S, M, L, XL",
-                    price: 24900,
-                    desc: "Плотное брендовое худи оверсайз кроя.",
+                    price: 5500,
+                    desc: "Фирменное худи с вышивкой.",
                     img: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=800"
                 },
                 {
                     id: 2,
-                    title: "Кроссовки Street",
+                    title: "Кроссовки Adidas City Munchen",
                     category: "shoes",
                     sizes: "41, 42, 43, 44",
-                    price: 39900,
+                    price: 3100,
                     desc: "Стильные городские кроссовки.",
                     img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800"
                 }
@@ -504,6 +669,8 @@
 
         let products = getProducts();
         let cart = JSON.parse(localStorage.getItem('black_store_cart')) || [];
+        let favorites = JSON.parse(localStorage.getItem('black_store_favs')) || [];
+        let currentCategory = 'all';
         let currentSelectedSize = '';
 
         function saveProducts() {
@@ -520,33 +687,73 @@
             }
 
             items.forEach(product => {
+                const isFav = favorites.includes(product.id);
+                const categoryName = product.category === 'clothes' ? 'ОДЕЖДА' : 'ОБУВЬ';
+
                 const card = document.createElement('div');
                 card.className = 'product-card';
-                card.onclick = () => openProductModal(product.id);
                 
                 card.innerHTML = `
-                    <div class="product-img-container">
+                    <div class="product-tag">${categoryName}</div>
+                    <div class="product-fav ${isFav ? 'active' : ''}" onclick="toggleFavorite(${product.id}, event)">
+                        <i class="fa-solid fa-heart"></i>
+                    </div>
+                    <div class="product-img-container" onclick="openProductModal(${product.id})">
                         <img src="${product.img}" alt="${product.title}" onerror="this.src='https://via.placeholder.com/400?text=No+Image'">
                     </div>
                     <div class="product-info">
-                        <div class="product-title">${product.title}</div>
-                        <div class="product-price">${product.price.toLocaleString()} ₸</div>
+                        <div class="product-title" onclick="openProductModal(${product.id})">${product.title}</div>
+                        <div class="product-bottom">
+                            <div class="product-price">${product.price.toLocaleString()} ₸</div>
+                            <button class="btn-card-action" onclick="openProductModal(${product.id})">В корзину</button>
+                        </div>
                     </div>
                 `;
                 grid.appendChild(card);
             });
         }
 
-        function filterProducts(category, btn) {
+        function setCategory(category, btn) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            currentCategory = category;
+            filterAndSearchProducts();
+        }
 
-            if (category === 'all') {
-                renderProducts(products);
+        function toggleFavorite(id, event) {
+            event.stopPropagation();
+            if (favorites.includes(id)) {
+                favorites = favorites.filter(favId => favId !== id);
             } else {
-                const filtered = products.filter(p => p.category === category);
-                renderProducts(filtered);
+                favorites.push(id);
             }
+            localStorage.setItem('black_store_favs', JSON.stringify(favorites));
+            filterAndSearchProducts();
+        }
+
+        function filterAndSearchProducts() {
+            const searchQuery = document.getElementById('search-input').value.toLowerCase();
+            const sortOrder = document.getElementById('sort-select').value;
+
+            let result = [...products];
+
+            if (currentCategory === 'favorites') {
+                result = result.filter(p => favorites.includes(p.id));
+            } else if (currentCategory !== 'all') {
+                result = result.filter(p => p.category === currentCategory);
+            }
+
+            if (searchQuery) {
+                result = result.filter(p => p.title.toLowerCase().includes(searchQuery));
+            }
+
+            if (sortOrder === 'price-asc') {
+                result.sort((a, b) => a.price - b.price);
+            } else if (sortOrder === 'price-desc') {
+                result.sort((a, b) => b.price - a.price);
+            }
+
+            renderProducts(result);
         }
 
         function openProductModal(id) {
@@ -701,7 +908,7 @@
 
             products.unshift(newProduct);
             saveProducts();
-            renderProducts(products);
+            filterAndSearchProducts();
             closeModal('admin-modal');
 
             document.getElementById('admin-title').value = '';
@@ -717,7 +924,7 @@
             document.getElementById(modalId).classList.remove('open');
         }
 
-        renderProducts(products);
+        filterAndSearchProducts();
         updateCart();
     </script>
 </body>
