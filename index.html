@@ -78,12 +78,31 @@
     /* --- MAIN LAYOUT --- */
     .container { max-width: 1100px; margin: 1.5rem auto; padding: 0 0.8rem; }
 
+    /* --- ФИЛЬТРЫ И ПОИСК --- */
+    .filter-section {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px;
+      padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 12px;
+    }
+    .search-box { width: 100%; position: relative; }
+    .search-input {
+      width: 100%; padding: 0.7rem 1rem 0.7rem 2.4rem; border-radius: 10px;
+      border: 1px solid var(--border); background: #000000; color: #fff; font-size: 0.9rem;
+    }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; }
+    
+    .filter-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+    .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filter-select {
+      background: #000000; color: #fff; border: 1px solid var(--border); padding: 0.5rem 0.8rem;
+      border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    }
+
     /* --- КАТЕГОРИИ --- */
     .categories-nav { display: flex; gap: 8px; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 5px; }
     .cat-btn {
       background: var(--card-bg); color: var(--text-muted); border: 1px solid var(--border);
       padding: 0.5rem 1.2rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
-      cursor: pointer; transition: all 0.2s; whitespace: nowrap;
+      cursor: pointer; transition: all 0.2s; whitespace: nowrap; display: flex; align-items: center; gap: 6px;
     }
     .cat-btn.active, .cat-btn:hover { background: #ffffff; color: #000000; border-color: #ffffff; }
 
@@ -104,6 +123,16 @@
       position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
       color: #fff; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; z-index: 2;
     }
+
+    /* Кнопка "Избранное" на карточке */
+    .fav-btn {
+      position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      border: none; color: #fff; border-radius: 50%; width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      font-size: 0.85rem; z-index: 3; transition: transform 0.2s;
+    }
+    .fav-btn.active { color: var(--pink); }
+    .fav-btn:hover { transform: scale(1.1); }
 
     .product-img { width: 100%; height: 160px; object-fit: cover; background-color: #18181b; }
     @media (min-width: 768px) { .product-img { height: 220px; } }
@@ -320,11 +349,39 @@
       </table>
     </section>
 
-    <!-- Категории -->
+    <!-- Поиск и Фильтры по цене -->
+    <div class="filter-section">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="Поиск товара по названию..." oninput="handleSearchInput()">
+      </div>
+      <div class="filter-controls">
+        <div class="filter-group">
+          <label style="font-size: 0.8rem; color: var(--text-muted);">Сортировка:</label>
+          <select id="sortSelect" class="filter-select" onchange="renderCatalog()">
+            <option value="default">По умолчанию</option>
+            <option value="asc">Сначала дешевле</option>
+            <option value="desc">Сначала дороже</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label style="font-size: 0.8rem; color: var(--text-muted);">Цена:</label>
+          <select id="priceRangeSelect" class="filter-select" onchange="renderCatalog()">
+            <option value="all">Все цены</option>
+            <option value="0-3000">До 3 000 ₽</option>
+            <option value="3000-7000">3 000 ₽ — 7 000 ₽</option>
+            <option value="7000-999999">От 7 000 ₽</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Категории + Избранное -->
     <div class="categories-nav">
       <button class="cat-btn active" onclick="filterCategory('all', this)">Все товары</button>
       <button class="cat-btn" onclick="filterCategory('clothes', this)">👕 Одежда</button>
       <button class="cat-btn" onclick="filterCategory('shoes', this)">👟 Обувь</button>
+      <button class="cat-btn" onclick="filterCategory('favorites', this)">❤️ Избранное (<span id="favCount">0</span>)</button>
     </div>
 
     <!-- Каталог -->
@@ -391,6 +448,7 @@
     let currentImageIndex = 0;
     
     let cart = getCart();
+    let favorites = getFavorites();
 
     const TG_ACCOUNT = "GemblF";
 
@@ -418,6 +476,32 @@
     function saveCart() {
       localStorage.setItem('black_store_user_cart', JSON.stringify(cart));
       updateCartBadge();
+    }
+
+    function getFavorites() {
+      const stored = localStorage.getItem('black_store_user_favorites');
+      return stored ? JSON.parse(stored) : [];
+    }
+
+    function saveFavorites() {
+      localStorage.setItem('black_store_user_favorites', JSON.stringify(favorites));
+      updateFavBadge();
+    }
+
+    function toggleFavorite(id, event) {
+      if (event) event.stopPropagation();
+      const index = favorites.indexOf(id);
+      if (index === -1) {
+        favorites.push(id);
+      } else {
+        favorites.splice(index, 1);
+      }
+      saveFavorites();
+      renderCatalog();
+    }
+
+    function updateFavBadge() {
+      document.getElementById('favCount').innerText = favorites.length;
     }
 
     function scrollToCatalog() {
@@ -454,17 +538,16 @@
 
     document.getElementById('adminPasswordInput').addEventListener('keyup', e => { if (e.key === 'Enter') checkPassword(); });
 
-    // Исправленное поочередное добавление фото
+    // Поочередное добавление фото
     const singleFileInput = document.getElementById('single-file-input');
     singleFileInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(event) {
-          // Гарантированно добавляем новое Base64 изображение в конец существующего массива
           currentUploadedImages.push(event.target.result);
           renderPreviewImages();
-          singleFileInput.value = ''; // очищаем инпут после добавления
+          singleFileInput.value = '';
         };
         reader.readAsDataURL(file);
       }
@@ -497,28 +580,62 @@
       renderCatalog();
     }
 
-    // --- ОТРЕСОВКА КАТАЛОГА ---
+    function handleSearchInput() {
+      renderCatalog();
+    }
+
+    // --- ОТРЕСОВКА КАТАЛОГА (С ПОИСКОМ, СОРТИРОВКОЙ И ИЗБРАННЫМ) ---
     function renderCatalog() {
       const products = getProducts();
       const grid = document.getElementById('product-grid');
       grid.innerHTML = '';
 
-      const filtered = currentCategoryFilter === 'all' 
-        ? products 
-        : products.filter(p => p.category === currentCategoryFilter);
+      let filtered = [...products];
+
+      // 1. Категории / Избранное
+      if (currentCategoryFilter === 'favorites') {
+        filtered = filtered.filter(p => favorites.includes(p.id));
+      } else if (currentCategoryFilter !== 'all') {
+        filtered = filtered.filter(p => p.category === currentCategoryFilter);
+      }
+
+      // 2. Живой поиск по названию
+      const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+      if (searchQuery !== '') {
+        filtered = filtered.filter(p => p.title.toLowerCase().includes(searchQuery));
+      }
+
+      // 3. Диапазон цен
+      const priceRange = document.getElementById('priceRangeSelect').value;
+      if (priceRange !== 'all') {
+        const [minPrice, maxPrice] = priceRange.split('-').map(Number);
+        filtered = filtered.filter(p => p.price >= minPrice && p.price <= maxPrice);
+      }
+
+      // 4. Сортировка по цене
+      const sortType = document.getElementById('sortSelect').value;
+      if (sortType === 'asc') {
+        filtered.sort((a, b) => a.price - b.price);
+      } else if (sortType === 'desc') {
+        filtered.sort((a, b) => b.price - a.price);
+      }
 
       if (filtered.length === 0) {
-        grid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center; padding: 2rem 0;">Товаров пока нет</p>';
+        grid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center; padding: 2rem 0;">Товары не найдены</p>';
         return;
       }
 
       filtered.forEach(p => {
         const catLabel = p.category === 'clothes' ? 'Одежда' : 'Обувь';
         const mainImg = p.images && p.images.length > 0 ? p.images[0] : (p.img || 'https://via.placeholder.com/200');
-        
+        const isFav = favorites.includes(p.id);
+
         grid.innerHTML += `
           <div class="product-card" onclick="openProductModal(${p.id})">
             <span class="product-badge">${catLabel}</span>
+            <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${p.id}, event)" title="${isFav ? 'Убрать из избранного' : 'В избранное'}">
+              ${isFav ? '♥' : '♡'}
+            </button>
             <img src="${mainImg}" alt="${p.title}" class="product-img">
             <div class="product-info">
               <div>
@@ -801,6 +918,7 @@
 
     // Инициализация
     updateCartBadge();
+    updateFavBadge();
     renderCatalog();
   </script>
 </body>
