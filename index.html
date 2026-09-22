@@ -248,9 +248,11 @@
       cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold;
     }
 
-    .admin-actions { display: flex; gap: 8px; margin-top: 1rem; }
-    .btn-save { background: #10b981; color: white; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; }
-    .btn-cancel { background: #3f3f46; color: white; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; flex: 1; }
+    .admin-actions { display: flex; gap: 8px; margin-top: 1rem; flex-wrap: wrap; }
+    .btn-save { background: #10b981; color: white; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; min-width: 110px; }
+    .btn-cancel { background: #3f3f46; color: white; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; flex: 1; min-width: 110px; }
+    .btn-backup { background: #3b82f6; color: white; border: none; padding: 0.6rem; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; }
+    
     .admin-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.8rem; }
     .admin-table th, .admin-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
     .btn-edit { background: #f59e0b; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; }
@@ -286,7 +288,7 @@
   <div class="container" id="catalogSection">
     <!-- Админка -->
     <section id="admin-panel">
-      <h2>Панель администратора</h2>
+      <h2>Панель администратора (Супер-надежная база)</h2>
       <form id="product-form">
         <input type="hidden" id="product-id">
         <div class="form-group">
@@ -324,6 +326,11 @@
           <button type="submit" class="btn-save">Сохранить</button>
           <button type="button" class="btn-cancel" onclick="resetForm()">Сброс</button>
         </div>
+        <button type="button" class="btn-backup" onclick="exportBackup()">📥 Скачать резервную копию базы</button>
+        <label class="file-upload-btn" style="margin-top: 8px; background: #2563eb; border: none; cursor: pointer;">
+          📤 Восстановить базу из файла
+          <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(event)">
+        </label>
       </form>
 
       <h3 style="margin-top: 1.5rem; font-size: 1rem;">Список товаров</h3>
@@ -438,26 +445,171 @@
     let selectedSize = '';
     let currentActiveProduct = null;
     let currentImageIndex = 0;
+    let productsCache = [];
     
     let cart = getCart();
     let favorites = getFavorites();
 
     const TG_ACCOUNT = "GemblF";
 
+    // --- НАДЕЖНОЕ ХРАНИЛИЩЕ INDEXEDDB ---
+    let db;
+    const dbRequest = indexedDB.open("BlackStoreDB", 1);
+
+    dbRequest.onerror = function(event) {
+      console.error("Ошибка открытия IndexedDB", event);
+      loadFallbackProducts();
+    };
+
+    dbRequest.onupgradeneeded = function(event) {
+      db = event.target.result;
+      if (!db.objectStoreNames.contains("products")) {
+        db.createObjectStore("products", { keyPath: "id" });
+      }
+    };
+
+    dbRequest.onsuccess = function(event) {
+      db = event.target.result;
+      fetchAllProductsFromDB();
+    };
+
+    function fetchAllProductsFromDB() {
+      if (!db) {
+        loadFallbackProducts();
+        return;
+      }
+      const transaction = db.transaction(["products"], "readonly");
+      const store = transaction.objectStore("products");
+      const request = store.getAll();
+
+      request.onsuccess = function() {
+        productsCache = request.result || [];
+        if (productsCache.length === 0) {
+          // Проверим старый localStorage на случай миграции
+          const oldLocal = localStorage.getItem('black_store_permanent_products');
+          if (oldLocal) {
+            try {
+              productsCache = JSON.parse(oldLocal);
+              productsCache.forEach(p => saveProductToDB(p));
+            } catch(e) {}
+          }
+        }
+        renderCatalog();
+        renderAdminTable();
+      };
+
+      request.onerror = function() {
+        loadFallbackProducts();
+      };
+    }
+
+    function saveProductToDB(product, callback) {
+      if (!db) {
+        saveFallbackProducts(product, callback);
+        return;
+      }
+      const transaction = db.transaction(["products"], "readwrite");
+      const store = transaction.objectStore("products");
+      store.put(product);
+
+      transaction.oncomplete = function() {
+        fetchAllProductsFromDB();
+        if (callback) callback();
+      };
+      transaction.onerror = function() {
+        saveFallbackProducts(product, callback);
+      };
+    }
+
+    function deleteProductFromDB(id, callback) {
+      if (!db) {
+        deleteFallbackProducts(id, callback);
+        return;
+      }
+      const transaction = db.transaction(["products"], "readwrite");
+      const store = transaction.objectStore("products");
+      store.delete(id);
+
+      transaction.oncomplete = function() {
+        fetchAllProductsFromDB();
+        if (callback) callback();
+      };
+      transaction.onerror = function() {
+        deleteFallbackProducts(id, callback);
+      };
+    }
+
+    // Резервные функции на случай блокировки IndexedDB браузером
+    function loadFallbackProducts() {
+      const stored = localStorage.getItem('black_store_safe_products');
+      productsCache = stored ? JSON.parse(stored) : [];
+      renderCatalog();
+      renderAdminTable();
+    }
+
+    function saveFallbackProducts(product, callback) {
+      const index = productsCache.findIndex(p => p.id === product.id);
+      if (index >= 0) {
+        productsCache[index] = product;
+      } else {
+        productsCache.push(product);
+      }
+      localStorage.setItem('black_store_safe_products', JSON.stringify(productsCache));
+      renderCatalog();
+      renderAdminTable();
+      if (callback) callback();
+    }
+
+    function deleteFallbackProducts(id, callback) {
+      productsCache = productsCache.filter(p => p.id !== id);
+      localStorage.setItem('black_store_safe_products', JSON.stringify(productsCache));
+      renderCatalog();
+      renderAdminTable();
+      if (callback) callback();
+    }
+
     function getProducts() {
-      const stored = localStorage.getItem('black_store_permanent_products');
-      return stored ? JSON.parse(stored) : [];
+      return productsCache;
     }
 
-    function saveProducts(products) {
-      localStorage.setItem('black_store_permanent_products', JSON.stringify(products));
-      renderCatalog();
-      renderAdminTable();
+    // --- РЕЗЕРВНОЕ КОПИРОВАНИЕ И ВОССТАНОВЛЕНИЕ В ФАЙЛ ---
+    function exportBackup() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(productsCache));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "black_store_backup.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
     }
 
-    function initStore() {
-      renderCatalog();
-      renderAdminTable();
+    function importBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported)) {
+            productsCache = imported;
+            if (db) {
+              const tx = db.transaction(["products"], "readwrite");
+              const store = tx.objectStore("products");
+              store.clear();
+              productsCache.forEach(p => store.put(p));
+            }
+            localStorage.setItem('black_store_safe_products', JSON.stringify(productsCache));
+            renderCatalog();
+            renderAdminTable();
+            alert("База успешно восстановлена из бэкапа!");
+          } else {
+            alert("Неверный формат файла бэкапа.");
+          }
+        } catch(err) {
+          alert("Ошибка при чтении файла.");
+        }
+      };
+      reader.readAsText(file);
     }
 
     function getCart() {
@@ -839,33 +991,30 @@
       const price = parseFloat(document.getElementById('product-price').value);
       const desc = document.getElementById('product-desc').value;
 
-      let products = getProducts();
+      let productObj;
+      const existingProduct = productsCache.find(p => p.id == id);
 
-      if (id) {
-        products = products.map(p => {
-          if (p.id == id) {
-            return {
-              id: Number(id), title, category, sizes, price, desc,
-              images: currentUploadedImages.length > 0 ? currentUploadedImages : (p.images || [p.img]),
-              img: currentUploadedImages.length > 0 ? currentUploadedImages[0] : p.img
-            };
-          }
-          return p;
-        });
+      if (id && existingProduct) {
+        productObj = {
+          id: Number(id), title, category, sizes, price, desc,
+          images: currentUploadedImages.length > 0 ? currentUploadedImages : (existingProduct.images || [existingProduct.img]),
+          img: currentUploadedImages.length > 0 ? currentUploadedImages[0] : existingProduct.img
+        };
       } else {
         if (currentUploadedImages.length === 0) {
           alert("Загрузите хотя бы одно изображение!");
           return;
         }
-        products.push({
+        productObj = {
           id: Date.now(), title, category, sizes, price, desc,
           images: currentUploadedImages,
           img: currentUploadedImages[0]
-        });
+        };
       }
 
-      saveProducts(products);
-      resetForm();
+      saveProductToDB(productObj, () => {
+        resetForm();
+      });
     });
 
     function editProduct(id) {
@@ -888,8 +1037,7 @@
 
     function deleteProduct(id) {
       if (confirm("Удалить товар?")) {
-        const products = getProducts();
-        saveProducts(products.filter(p => p.id !== id));
+        deleteProductFromDB(id);
       }
     }
 
@@ -902,7 +1050,6 @@
 
     updateCartBadge();
     updateFavBadge();
-    initStore();
   </script>
 </body>
 </html>
